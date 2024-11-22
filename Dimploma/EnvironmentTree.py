@@ -56,7 +56,7 @@ class EnvMinimalTree:
         #     reward = -1
 
         if terminal and reward == 0:
-            reward = (self.compute_objective_function() / -self.min_tree_score + 10) * terminal  # +2 so that best reward is 1
+            reward = (self.compute_objective_function() / -self.min_tree_score + 2) * terminal  # +2 so that best reward is 1
 
         # if terminal:
         #     print("reward: ", reward)
