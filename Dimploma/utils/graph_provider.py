@@ -1,0 +1,37 @@
+from torch_geometric.data import Data
+
+from Dimploma.util import generate_random_graph
+
+
+class GraphProvider:
+    def __init__(self, fixed_graph: Data = None, device='cpu', nodes: int = 10, edges: int = 55):
+        self.generate = False
+        self.device = device
+        self.nodes = nodes
+        self.edges = edges
+
+        if fixed_graph is None:
+            if nodes < 0:
+                raise ValueError("generate_graph_size must be greater than or equal to 0")
+            else:
+                self.generate = True
+        else:
+            self.fixed_graph = fixed_graph
+
+    def get_graph(self):
+        if self.generate:
+            return generate_random_graph(self.nodes, self.edges, device=self.device)
+        else:
+            if self.fixed_graph is None:
+                raise ValueError("generate_graph_size must be greater than or equal to 0")
+            else:
+                return self.fixed_graph.clone()
+
+    def set_fixed_graph(self, fixed_graph):
+        self.fixed_graph = fixed_graph
+        if fixed_graph is None:
+            self.generate = True
+
+    def set_size(self, nodes, edges):
+        self.nodes = nodes
+        self.edges = edges
