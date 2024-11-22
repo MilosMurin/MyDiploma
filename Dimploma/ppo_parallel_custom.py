@@ -32,7 +32,6 @@ def worker(connection, env_params, env_func, count_of_iterations, count_of_envs,
     for o in observations:
         o.cpu()
 
-    # mem_observations = GraphStore((count_of_steps, count_of_envs))
     mem_observations = np.empty((count_of_steps, count_of_envs), dtype=Data)
     mem_masks = torch.zeros((count_of_steps, count_of_envs, masks.shape[1]))
     mem_log_probs = torch.zeros((count_of_steps, count_of_envs, 1))
