@@ -65,6 +65,9 @@ class EnvMinimalTree:
         temp = self.parent[self.graph.edge_index]
         cycle_mask = temp[0] != temp[1]
 
+        # print("Base mask", base_mask)
+        # print("Cycle mask", cycle_mask)
+
         return cl, torch.logical_and(base_mask, cycle_mask), reward, terminal, -1
 
     def compute_objective_function(self):
@@ -112,8 +115,15 @@ class EnvMinimalTreeTwoStep(EnvMinimalTree):
         else:
             edge_index = self.find_edge(self.last_step, action)
             self.last_step = -1
-            cl, _, reward, terminal, info = super().step(edge_index)
-            return cl, torch.ones(cl.x.shape[0], dtype=torch.bool), reward, terminal, info
+            cl, edge_mask, reward, terminal, info = super().step(edge_index)
+
+            mask = cl.edge_index.T[edge_mask].flatten()
+            # print("Mask ", mask)
+
+            final_mask = torch.any(cl.x[:,0].unsqueeze(1) == mask.flatten(), axis=1)
+
+
+            return cl, final_mask, reward, terminal, info
 
     def find_edge(self, p1, p2):
         mask = ((self.graph.edge_index[0] == p1) & (self.graph.edge_index[1] == p2)) | \
