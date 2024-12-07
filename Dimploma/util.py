@@ -66,7 +66,3 @@ def print_graph_info(graph: Data):
             if e[0] == x:
                 print(f'Edge {x}->{e[1]} - Price: {graph.edge_attr[edges, 0]}, Mark: {graph.edge_attr[edges, 1]}')
             edges += 1
-
-def load_graph():
-    # TODO
-    pass
