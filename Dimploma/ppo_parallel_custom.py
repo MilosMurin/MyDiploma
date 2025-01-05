@@ -13,7 +13,21 @@ from utils.utils import flatten_list, write_to_file
 
 
 # import ipdb
+def test_random(env):
+    terminal = False
+    observation, mask = env.reset()
+    rewards = []
+    actions_res = []
+    masks_res = []
+    while not terminal:
+        action = np.random.choice(np.arange(mask.shape[0])[mask])
 
+        masks_res.append(mask)
+        observation, mask, reward, terminal, _ = env.step(action)
+        rewards.append(reward)
+        actions_res.append(action)
+
+    return env.compute_objective_function(), observation.edge_attr[:, 1], rewards, actions_res #, masks_res
 
 # 1 proces
 # Odohranie hry v niekolkych prostrediach
