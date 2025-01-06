@@ -1,6 +1,6 @@
 from torch_geometric.data import Data
 
-from Dimploma.util import generate_random_graph
+from Dimploma.util import generate_random_graph_add_method
 
 
 class GraphProvider:
@@ -20,7 +20,7 @@ class GraphProvider:
 
     def get_graph(self):
         if self.generate:
-            return generate_random_graph(self.nodes, self.edges, device=self.device)
+            return generate_random_graph_add_method(self.nodes, self.edges, device=self.device)
         else:
             if self.fixed_graph is None:
                 raise ValueError("generate_graph_size must be greater than or equal to 0")
