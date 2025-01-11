@@ -43,8 +43,8 @@ def my_to_networkx(graph: Data):
 
 def generate_random_full_graph(node_amount, edge_value_min=1, edge_value_max=10, device='cpu'):
     max_edge_amount = torch.sum(torch.arange(node_amount)).item()
-    x = torch.zeros((node_amount, 2), device=device, dtype=torch.int)
-    edges = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.int)
+    x = torch.zeros((node_amount, 2), device=device)
+    edges = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.int64)
     edges_attr = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.float32)
     edges_weight = torch.zeros(max_edge_amount, device=device, dtype=torch.float32)
     e = 0
@@ -88,9 +88,9 @@ def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value
     if max_edge_amount == -1 or max_edge_amount > t_max:
         return generate_random_full_graph(node_amount, edge_value_min, edge_value_max, device)
 
-    x = torch.stack((torch.arange(node_amount, dtype=torch.int), torch.zeros(node_amount, dtype=torch.int))).to(device)
+    x = torch.stack((torch.arange(node_amount), torch.zeros(node_amount))).T.to(device)
     parent = torch.arange(node_amount, device=device, dtype=torch.int)
-    edge_index = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.int)
+    edge_index = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.int64)
     edges_attr = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.float32)
     edges_weight = torch.zeros(max_edge_amount, device=device, dtype=torch.float32)
     e = 0
@@ -99,11 +99,11 @@ def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value
     while not torch.all(parent == parent[0]):
         mask = parent == parent[0]
 
-        from_nodes = x[0, mask]
-        to_nodes = x[0, ~mask]
+        from_nodes = x[mask, 0]
+        to_nodes = x[~mask, 0]
 
-        random_from = from_nodes[randint(0, from_nodes.shape[0] - 1)]
-        random_to = to_nodes[randint(0, to_nodes.shape[0] - 1)]
+        random_from = int(from_nodes[randint(0, from_nodes.shape[0] - 1)].item())
+        random_to = int(to_nodes[randint(0, to_nodes.shape[0] - 1)].item())
 
         edge_index[e] = torch.tensor([random_from, random_to])
         edges_weight[e] = randint(edge_value_min, edge_value_max)
