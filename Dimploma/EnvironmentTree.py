@@ -98,20 +98,20 @@ class EnvMinimalTreeTwoStep(EnvMinimalTree):
             self.last_step = action
             cl = self.graph.clone()
 
-            # sub_mask1 = cl.edge_index[0] == self.last_step
-            # sub_mask2 = cl.edge_index[1] == self.last_step
-            # attr_mask1 = cl.edge_attr[:, 1] != 1
-            # mask1 = cl.edge_index[1][torch.logical_and(sub_mask1, attr_mask1)]
-            # mask2 = cl.edge_index[0][torch.logical_and(sub_mask2, attr_mask1)]
-            # mask = torch.logical_or(torch.any(cl.x[:, 0].unsqueeze(1) == mask1, dim=1),
-            #                         torch.any(cl.x[:, 0].unsqueeze(1) == mask2, dim=1))
+            sub_mask1 = cl.edge_index[0] == self.last_step
+            sub_mask2 = cl.edge_index[1] == self.last_step
+            attr_mask1 = cl.edge_attr[:, 1] != 1
+            mask1 = cl.edge_index[1][torch.logical_and(sub_mask1, attr_mask1)]
+            mask2 = cl.edge_index[0][torch.logical_and(sub_mask2, attr_mask1)]
+            exist_edge_mask = torch.logical_or(torch.any(cl.x[:, 0].unsqueeze(1) == mask1, dim=1),
+                                    torch.any(cl.x[:, 0].unsqueeze(1) == mask2, dim=1))
 
-            mask = self.parent != self.parent[self.last_step]
+            cycle_mask = self.parent != self.parent[self.last_step]
 
             # only setting the mark of last step in the clone so i don't have to reset it in the env
             cl.x[self.last_step, 1] = 1
 
-            return cl, mask, 0, False, -1
+            return cl, torch.logical_and(exist_edge_mask, cycle_mask), 0, False, -1
         else:
             edge_index = self.find_edge(self.last_step, action)
             self.last_step = -1
