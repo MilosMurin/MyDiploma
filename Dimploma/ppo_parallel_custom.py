@@ -131,7 +131,7 @@ def worker(connection, env_params, env_func, count_of_iterations, count_of_envs,
 class Agent:
     def __init__(self, model, rnd_model=None, gamma=0.99, epsilon=0.1,
                  coef_value=0.5, coef_entropy=0.001, gae_lambda=0.95,
-                 name='ppo', path='results/', device='cpu', lr=0.00025, override=False, test=False):
+                 name='ppo', path='results/', device='cpu', lr=0.00025, override=False, test=False, early_stop=False):
 
         self.model = model
         self.rnd_model = rnd_model
@@ -163,6 +163,9 @@ class Agent:
         self.train_desc = None
         self.finish_training = False
         self.last_saved = datetime.now()
+
+        self.early_stop = early_stop
+        self.early_val = -1
 
     def training_description(self, description):
         self.train_desc = description
@@ -200,6 +203,7 @@ class Agent:
 
         print('Training is starting')
         self.finish_training = False
+        self.early_val = -1
 
         loss_logger = AgentLogger(f'{self.path}/loss.csv',
                                   ['avg_score', 'policy', 'value', 'entropy', 'rnd', 'lr'])
@@ -355,6 +359,17 @@ class Agent:
                             self.optimizer.param_groups[0]['lr'])
 
             mins = (datetime.now() - self.last_saved).seconds // 60
+
+            if self.early_stop and iteration % 250 == 0:
+                if self.early_val == -1:
+                    self.early_val = avg_score
+                    print('Writing to early val:', self.early_val)
+                else:
+                    print('Comparing early val:', self.early_val, ' - ', avg_score)
+                    if self.early_val + 0.02 > avg_score:
+                        print('Stopping early because not many improvements were made')
+                        break
+                    self.early_val = avg_score
 
             if better_score or iteration % 1000 == 0 or mins >= 30:
                 self.save_model(iteration)
