@@ -366,7 +366,7 @@ class Agent:
                     print('Writing to early val:', self.early_val)
                 else:
                     print('Comparing early val:', self.early_val, ' - ', avg_score)
-                    if self.early_val + 0.02 > avg_score:
+                    if self.early_val + 0.01 > avg_score:
                         print('Stopping early because not many improvements were made')
                         break
                     self.early_val = avg_score
@@ -379,7 +379,7 @@ class Agent:
         if self.train_desc is not None:
             print('Desc:', self.train_desc)
 
-        self.save_model(f'{iteration}_last')
+        self.save_model(f'{count_of_iterations-1}_last')
 
         for connection in connections:
             connection.send(1)
