@@ -379,6 +379,7 @@ class Agent:
         if self.train_desc is not None:
             print('Desc:', self.train_desc)
 
+        self.save_model(f'{iteration-1}_early_stop')
         self.save_model(f'{count_of_iterations-1}_last')
 
         for connection in connections:
