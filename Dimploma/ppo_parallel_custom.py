@@ -129,17 +129,14 @@ def worker(connection, env_params, env_func, count_of_iterations, count_of_envs,
 
 
 class Agent:
-    def __init__(self, model, rnd_model=None, gamma=0.99, epsilon=0.1,
+    def __init__(self, model, gamma=0.99, epsilon=0.1,
                  coef_value=0.5, coef_entropy=0.001, gae_lambda=0.95,
                  name='ppo', path='results/', device='cpu', lr=0.00025, override=False, test=False, early_stop=False):
 
         self.model = model
-        self.rnd_model = rnd_model
         self.model.to(device)
-        # self.rnd_model.to(device)
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
-        # self.rnd_optimizer = torch.optim.Adam(self.rnd_model.parameters(), lr=lr)
 
         self.gamma = gamma
         self.coef_value = coef_value
@@ -206,7 +203,7 @@ class Agent:
         self.early_val = -1
 
         loss_logger = AgentLogger(f'{self.path}/loss.csv',
-                                  ['avg_score', 'policy', 'value', 'entropy', 'rnd', 'lr'])
+                                  ['avg_score', 'policy', 'value', 'entropy', 'lr'])
         score_logger = ScoreLogger(f'{self.path}/score.csv', score_transformer_fn=score_transformer_fn)
 
         lr_scheduler = LinearLR(self.optimizer, start_factor=1, end_factor=0.01,
@@ -238,13 +235,6 @@ class Agent:
                     observations = Batch.from_data_list(observations).to(self.device)
                     logits, values = self.model(observations)
 
-                    '''
-                    RND - Rewards
-                    '''
-                    # rnd_pred, rnd_targ = self.rnd_model(observations)
-
-                    # rewards = (rnd_pred - rnd_targ) ** 2
-                    # rewards = rewards.sum(dim=1) / 2
                     rewards = torch.zeros((count_of_processes * count_of_envs))
 
                 # If you selected actions in the main process, your iteration
@@ -298,7 +288,7 @@ class Agent:
             mem_advantages = torch.stack(mem_advantages).view(-1, 1)
             mem_advantages = (mem_advantages - torch.mean(mem_advantages)) / (torch.std(mem_advantages) + 1e-5)
 
-            s_policy, s_value, s_entropy, s_rnd = 0, 0, 0, 0
+            s_policy, s_value, s_entropy = 0, 0, 0
 
             # Learning here
             for epoch in range(count_of_epochs):
@@ -315,14 +305,6 @@ class Agent:
                     entropy_loss = (log_probs * probs).sum(1, keepdim=True).mean()
                     value_loss = F.mse_loss(values, mem_target_values[idx].to(self.device))
 
-                    # rnd_pred, rnd_targ = self.rnd_model(obs)
-                    # loss_rnd = (rnd_targ - rnd_pred) ** 2
-
-                    # random loss regularisation, 25% non zero for 128envs, 100% non zero for 32envs
-                    # prob = 16.0 / (count_of_envs * count_of_processes)
-                    # random_mask = torch.rand(loss_rnd.shape).to(loss_rnd.device)
-                    # random_mask = 1.0 * (random_mask < prob)
-                    # loss_rnd = (loss_rnd * random_mask).sum() / (random_mask.sum() + 0.00000001)
 
                     ratio = torch.exp(new_log_probs - mem_log_probs[idx].to(self.device))
                     advantage = mem_advantages[idx].to(self.device)
@@ -333,7 +315,6 @@ class Agent:
                     s_policy += policy_loss.item()
                     s_value += value_loss.item()
                     s_entropy += entropy_loss.item()
-                    # s_rnd += loss_rnd.item()
 
                     self.optimizer.zero_grad()
                     loss = policy_loss + self.coef_value * value_loss \
@@ -342,10 +323,6 @@ class Agent:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.5)
                     self.optimizer.step()
 
-                    # self.rnd_optimizer.zero_grad()
-                    # loss_rnd.backward()
-                    # torch.nn.utils.clip_grad_norm_(self.rnd_model.parameters(), 0.5)
-                    # self.rnd_optimizer.step()
                 # if epoch % 10 == 0:
                 #     print(f'Epoch: {epoch}')
 
@@ -355,7 +332,6 @@ class Agent:
                             s_policy / batches_per_iteration,
                             s_value / batches_per_iteration,
                             s_entropy / batches_per_iteration,
-                            s_rnd / batches_per_iteration,
                             self.optimizer.param_groups[0]['lr'])
 
             mins = (datetime.now() - self.last_saved).seconds // 60
