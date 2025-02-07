@@ -71,7 +71,7 @@ class EnvMinimalTree:
         return cl, torch.logical_and(base_mask, cycle_mask), reward, terminal, -1
 
     def compute_objective_function(self):
-        return torch.sum(self.graph.edge_attr[:, 1] * self.graph.edge_attr[:, 0]).item()
+        return torch.sum(self.graph.edge_attr[:, 1] * self.graph.edge_attr[:, 2]).item()
 
     def get_selected_treex(self):
         mask = torch.argwhere(self.graph.edge_attr[:, 1] == 1)[:, 0]

@@ -53,7 +53,7 @@ def generate_random_full_graph(node_amount, edge_value_min=1, edge_value_max=10,
     max_edge_amount = torch.sum(torch.arange(node_amount)).item()
     x = torch.zeros((node_amount, 2), device=device)
     edges = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.int64)
-    edges_attr = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.float32)
+    edges_attr = torch.zeros((max_edge_amount, 3), device=device, dtype=torch.float32)
     edges_weight = torch.zeros(max_edge_amount, device=device, dtype=torch.float32)
     e = 0
     for i in range(node_amount):
@@ -64,9 +64,13 @@ def generate_random_full_graph(node_amount, edge_value_min=1, edge_value_max=10,
             edges[e, 0] = i
             edges[e, 1] = j
             edges_weight[e] = randint(edge_value_min, edge_value_max) if i != j else 0
-            edges_attr[e, 0] = edges_weight[e]
+            edges_attr[e, 2] = edges_weight[e]
             edges_attr[e, 1] = 0
             e += 1
+
+    max_distance = torch.max(edges_attr[:, 2])
+    edges_attr[:, 0] = edges_attr[:, 2] / max_distance
+
 
     return Data(x=x, edge_index=edges.T, edge_attr=edges_attr, edge_weight=edges_weight)
 
@@ -99,7 +103,7 @@ def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value
     x = torch.stack((torch.arange(node_amount), torch.zeros(node_amount))).T.to(device)
     parent = torch.arange(node_amount, device=device, dtype=torch.int)
     edge_index = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.int64)
-    edges_attr = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.float32)
+    edges_attr = torch.zeros((max_edge_amount, 3), device=device, dtype=torch.float32)
     edges_weight = torch.zeros(max_edge_amount, device=device, dtype=torch.float32)
     e = 0
 
@@ -115,7 +119,7 @@ def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value
 
         edge_index[e] = torch.tensor([random_from, random_to])
         edges_weight[e] = randint(edge_value_min, edge_value_max)
-        edges_attr[e, 0] = edges_weight[e]
+        edges_attr[e, 2] = edges_weight[e]
         e += 1
         parent[random_to] = parent[random_from]
 
@@ -142,9 +146,12 @@ def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value
             node_to = randint(0, possibilities.shape[0] - 1)
             edge_index[e] = torch.tensor([node_from, possibilities[node_to]])
             edges_weight[e] = randint(edge_value_min, edge_value_max)
-            edges_attr[e, 0] = edges_weight[e]
+            edges_attr[e, 2] = edges_weight[e]
 
             e += 1
+
+    max_distance = torch.max(edges_attr[:, 2])
+    edges_attr[:, 0] = edges_attr[:, 2] / max_distance
 
     return Data(x=x, edge_index=edge_index.T, edge_attr=edges_attr, edge_weight=edges_weight)
 
