@@ -12,17 +12,17 @@ class EnvMinimalTree:
     def __init__(self, graph_provider: GraphProvider, device='cpu', process_i=-1, env_i=-1):
         self.device = device
         self.graph_provider = graph_provider
-        self.graph = self.graph_provider.get_graph()
+        self.graph = self.graph_provider.get_graph().to(self.device)
         self.processI = process_i
         self.envI = env_i
         self.min_tree_score = 0
         self.min_tree = None
         self.steps = 0
-        self.parent = torch.arange(self.graph.x.shape[0])
+        self.parent = torch.arange(self.graph.x.shape[0], device=self.device)
         self.calculate_min_span_tree()
 
     def calculate_min_span_tree(self):
-        g = my_to_networkx(self.graph)
+        g = my_to_networkx(self.graph.clone().cpu())
         min_tree = minimum_spanning_tree(g, 'edge_weight')
         self.min_tree = from_networkx(min_tree)
         self.min_tree_score = self.min_tree.edge_weight.sum().item() / 2
@@ -30,18 +30,18 @@ class EnvMinimalTree:
 
     def reset(self):
         self.steps = 0
-        self.graph = self.graph_provider.get_graph()
+        self.graph = self.graph_provider.get_graph().to(self.device)
         self.calculate_min_span_tree()
-        self.parent = torch.arange(self.graph.x.shape[0])
-        cl = self.graph.clone()
+        self.parent = torch.arange(self.graph.x.shape[0], device=self.device)
+        cl = self.graph.clone().cpu()
         return cl, (cl.edge_attr[:, 1] != 1)
 
     def step(self, action):
         self.steps += 1
         self.graph.edge_attr[action, 1] = 1
-        cl = self.graph.clone()
+        cl = self.graph.clone().cpu()
 
-        sel_graph_g = self.get_selected_treex()
+        # sel_graph_g = self.get_selected_treex()
 
         terminal = self.steps >= self.graph.x.shape[0] - 1
         reward = 0
@@ -61,14 +61,14 @@ class EnvMinimalTree:
         # if terminal:
         #     print("reward: ", reward)
 
-        base_mask = cl.edge_attr[:, 1] != 1
+        base_mask = self.graph.edge_attr[:, 1] != 1
         temp = self.parent[self.graph.edge_index]
         cycle_mask = temp[0] != temp[1]
 
         # print("Base mask", base_mask)
         # print("Cycle mask", cycle_mask)
 
-        return cl, torch.logical_and(base_mask, cycle_mask), reward, terminal, -1
+        return cl, torch.logical_and(base_mask, cycle_mask).cpu(), reward, terminal, -1
 
     def compute_objective_function(self):
         return torch.sum(self.graph.edge_attr[:, 1] * self.graph.edge_attr[:, 2]).item()
@@ -96,36 +96,36 @@ class EnvMinimalTreeTwoStep(EnvMinimalTree):
     def step(self, action):
         if self.last_step == -1:
             self.last_step = action
-            cl = self.graph.clone()
+            cl = self.graph.clone().cpu()
 
-            sub_mask1 = cl.edge_index[0] == self.last_step
-            sub_mask2 = cl.edge_index[1] == self.last_step
-            attr_mask1 = cl.edge_attr[:, 1] != 1
-            mask1 = cl.edge_index[1][torch.logical_and(sub_mask1, attr_mask1)]
-            mask2 = cl.edge_index[0][torch.logical_and(sub_mask2, attr_mask1)]
-            exist_edge_mask = torch.logical_or(torch.any(cl.x[:, 0].unsqueeze(1) == mask1, dim=1),
-                                    torch.any(cl.x[:, 0].unsqueeze(1) == mask2, dim=1))
+            sub_mask1 = self.graph.edge_index[0] == self.last_step
+            sub_mask2 = self.graph.edge_index[1] == self.last_step
+            attr_mask1 = self.graph.edge_attr[:, 1] != 1
+            mask1 = self.graph.edge_index[1][torch.logical_and(sub_mask1, attr_mask1)]
+            mask2 = self.graph.edge_index[0][torch.logical_and(sub_mask2, attr_mask1)]
+            exist_edge_mask = torch.logical_or(torch.any(self.graph.x[:, 0].unsqueeze(1) == mask1, dim=1),
+                                    torch.any(self.graph.x[:, 0].unsqueeze(1) == mask2, dim=1))
 
             cycle_mask = self.parent != self.parent[self.last_step]
 
             # only setting the mark of last step in the clone so i don't have to reset it in the env
             cl.x[self.last_step, 1] = 1
 
-            return cl, torch.logical_and(exist_edge_mask, cycle_mask), 0, False, -1
+            return cl, torch.logical_and(exist_edge_mask, cycle_mask).cpu(), 0, False, -1
         else:
             edge_index = self.find_edge(self.last_step, action)
             self.last_step = -1
             cl, edge_mask, reward, terminal, info = super().step(edge_index)
 
-            mask = cl.edge_index.T[edge_mask].flatten()
+            mask = self.graph.edge_index.T[edge_mask].flatten()
             # print("Mask ", mask)
 
-            final_mask = torch.any(cl.x[:,0].unsqueeze(1) == mask.flatten(), axis=1)
+            final_mask = torch.any(self.graph.x[:,0].unsqueeze(1) == mask.flatten(), axis=1)
 
 
-            return cl, final_mask, reward, terminal, info
+            return cl, final_mask.cpu(), reward, terminal, info
 
     def find_edge(self, p1, p2):
         mask = ((self.graph.edge_index[0] == p1) & (self.graph.edge_index[1] == p2)) | \
                ((self.graph.edge_index[0] == p2) & (self.graph.edge_index[1] == p1))
-        return torch.arange(self.graph.edge_index.shape[1])[mask]
+        return torch.arange(self.graph.edge_index.shape[1], device=self.device)[mask]
