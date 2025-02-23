@@ -49,21 +49,29 @@ def show_graph(gr):
 def my_to_networkx(graph: Data):
     return to_networkx(graph, to_undirected=True, edge_attrs=['edge_weight'])
 
-def generate_random_full_graph(node_amount, edge_value_min=1, edge_value_max=10, device='cpu'):
+def generate_random_full_graph(node_amount, edge_value_min=1, edge_value_max=10, device='cpu', position=False):
     max_edge_amount = torch.sum(torch.arange(node_amount)).item()
-    x = torch.zeros((node_amount, 2), device=device)
+    x = torch.zeros((node_amount, 4 if position else 2), device=device)
     edges = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.int64)
     edges_attr = torch.zeros((max_edge_amount, 3), device=device, dtype=torch.float32)
     edges_weight = torch.zeros(max_edge_amount, device=device, dtype=torch.float32)
     e = 0
     for i in range(node_amount):
         x[i, 0] = i
+        if position:
+            x[i, 2] = randint(-node_amount, node_amount)
+            x[i, 3] = randint(-node_amount, node_amount)
+
+    for i in range(node_amount):
         for j in range(i, node_amount):
             if i == j:
                 continue
             edges[e, 0] = i
             edges[e, 1] = j
-            edges_weight[e] = randint(edge_value_min, edge_value_max) if i != j else 0
+            if position:
+                edges_weight[e] = torch.dist(x[i, 2:4], x[j, 2:4]).item()
+            else:
+                edges_weight[e] = randint(edge_value_min, edge_value_max) if i != j else 0
             edges_attr[e, 2] = edges_weight[e]
             edges_attr[e, 1] = 0
             e += 1
@@ -75,37 +83,26 @@ def generate_random_full_graph(node_amount, edge_value_min=1, edge_value_max=10,
     return Data(x=x, edge_index=edges.T, edge_attr=edges_attr, edge_weight=edges_weight)
 
 
-def generate_random_graph_remove_method(node_amount, max_edge_amount=-1, edge_value_min=1, edge_value_max=10, device='cpu'):
-    full_graph = generate_random_full_graph(node_amount, edge_value_min, edge_value_max, device)
+def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value_min=1, edge_value_max=10, device='cpu', position=False):
     t_max = torch.sum(torch.arange(node_amount)).item()
 
     if max_edge_amount < node_amount - 1:
         raise Exception("Cannot create a graph for training that will have more than one component")
 
     if max_edge_amount == -1 or max_edge_amount > t_max:
-        return full_graph
+        return generate_random_full_graph(node_amount, edge_value_min, edge_value_max, device, position)
 
-    # TODO remove edges that do not create two components when removed until the desired amount
-
-
-    pass
-
-
-def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value_min=1, edge_value_max=10, device='cpu'):
-    t_max = torch.sum(torch.arange(node_amount)).item()
-
-    if max_edge_amount < node_amount - 1:
-        raise Exception("Cannot create a graph for training that will have more than one component")
-
-    if max_edge_amount == -1 or max_edge_amount > t_max:
-        return generate_random_full_graph(node_amount, edge_value_min, edge_value_max, device)
-
-    x = torch.stack((torch.arange(node_amount), torch.zeros(node_amount))).T.to(device)
+    x = torch.stack((torch.arange(node_amount), *[torch.zeros(node_amount)] * (3 if position else 1)), dim=1).to(device)
     parent = torch.arange(node_amount, device=device, dtype=torch.int)
     edge_index = torch.zeros((max_edge_amount, 2), device=device, dtype=torch.int64)
     edges_attr = torch.zeros((max_edge_amount, 3), device=device, dtype=torch.float32)
     edges_weight = torch.zeros(max_edge_amount, device=device, dtype=torch.float32)
     e = 0
+
+    for i in range(node_amount):
+        if position:
+            x[i, 2] = randint(-node_amount, node_amount)
+            x[i, 3] = randint(-node_amount, node_amount)
 
     # make a basic tree
     while not torch.all(parent == parent[0]):
@@ -118,7 +115,10 @@ def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value
         random_to = int(to_nodes[randint(0, to_nodes.shape[0] - 1)].item())
 
         edge_index[e] = torch.tensor([random_from, random_to])
-        edges_weight[e] = randint(edge_value_min, edge_value_max)
+        if position:
+            edges_weight[e] = torch.dist(x[random_from, 2:4], x[random_to, 2:4]).item()
+        else:
+            edges_weight[e] = randint(edge_value_min, edge_value_max)
         edges_attr[e, 2] = edges_weight[e]
         e += 1
         parent[random_to] = parent[random_from]
@@ -145,7 +145,10 @@ def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value
             # pick one and create edge
             node_to = randint(0, possibilities.shape[0] - 1)
             edge_index[e] = torch.tensor([node_from, possibilities[node_to]])
-            edges_weight[e] = randint(edge_value_min, edge_value_max)
+            if position:
+                edges_weight[e] = torch.dist(x[node_from, 2:4], x[node_to, 2:4]).item()
+            else:
+                edges_weight[e] = randint(edge_value_min, edge_value_max)
             edges_attr[e, 2] = edges_weight[e]
 
             e += 1
