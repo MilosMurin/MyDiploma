@@ -7,8 +7,6 @@ from Dimploma.ppo_parallel_custom import Agent
 from Dimploma.utils.graph_provider import GraphProvider
 
 
-
-
 def load_agent_for_testing(path, iteration_amount, graph_provider: GraphProvider, gcn, device='cpu'):
     testesing_agent = path
     testing_iter_amount = iteration_amount
@@ -25,3 +23,11 @@ def load_agent_for_testing(path, iteration_amount, graph_provider: GraphProvider
     agent_test.load_model(f"{testesing_agent}{testing_last_path}")
 
     return loaded_graph, test_env, agent_test
+
+
+def load_desc(path):
+    with open(path + '/desc.txt', 'r') as file:
+        content = file.read()
+    print(content)
+
+

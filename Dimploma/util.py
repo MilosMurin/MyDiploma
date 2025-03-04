@@ -143,8 +143,8 @@ def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value
 
         if possibilities.shape[0] > 0:
             # pick one and create edge
-            node_to = randint(0, possibilities.shape[0] - 1)
-            edge_index[e] = torch.tensor([node_from, possibilities[node_to]])
+            node_to = possibilities[randint(0, possibilities.shape[0] - 1)]
+            edge_index[e] = torch.tensor([node_from, node_to])
             if position:
                 edges_weight[e] = torch.dist(x[node_from, 2:4], x[node_to, 2:4]).item()
             else:
