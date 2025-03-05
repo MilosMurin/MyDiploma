@@ -114,7 +114,7 @@ def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value
         random_from = int(from_nodes[randint(0, from_nodes.shape[0] - 1)].item())
         random_to = int(to_nodes[randint(0, to_nodes.shape[0] - 1)].item())
 
-        edge_index[e] = torch.tensor([random_from, random_to])
+        edge_index[e] = torch.tensor([random_from, random_to], device=device)
         if position:
             edges_weight[e] = torch.dist(x[random_from, 2:4], x[random_to, 2:4]).item()
         else:
@@ -128,7 +128,7 @@ def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value
 
         node_from = randint(0, node_amount - 1)
 
-        possibilities = torch.arange(node_amount)
+        possibilities = torch.arange(node_amount, device=device)
 
         # filter out self loops
         possibilities = possibilities[possibilities != node_from]
@@ -144,7 +144,7 @@ def generate_random_graph_add_method(node_amount, max_edge_amount=-1, edge_value
         if possibilities.shape[0] > 0:
             # pick one and create edge
             node_to = possibilities[randint(0, possibilities.shape[0] - 1)]
-            edge_index[e] = torch.tensor([node_from, node_to])
+            edge_index[e] = torch.tensor([node_from, possibilities[node_to]], device=device)
             if position:
                 edges_weight[e] = torch.dist(x[node_from, 2:4], x[node_to, 2:4]).item()
             else:
