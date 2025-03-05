@@ -55,7 +55,7 @@ class GCN(torch.nn.Module):
         if self.remove_index:
             x = x[:, 1:]
         edge_index = data.edge_index
-        edge_weight = data.data.edge_attr[:, :2] # take only the normalized distances with edge_attr[:, 0]
+        edge_weight = data.edge_attr[:, :2] # take only the normalized distances with edge_attr[:, 0]
         # print(data.num_node_features)
         # print(f'x start: {x.shape}')
         # print(f'Edge index start: {edge_index.shape}')
