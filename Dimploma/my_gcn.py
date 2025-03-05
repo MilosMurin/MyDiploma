@@ -31,6 +31,10 @@ class GCN(torch.nn.Module):
             self.conv3 = nng.GATConv(16 + to_add, 16)
         if conv_layers > 3:
             self.conv4 = nng.GATConv(16 + to_add, 16)
+        if conv_layers > 4:
+            self.conv5 = nng.GATConv(16 + to_add, 16)
+        if conv_layers > 5:
+            self.conv6 = nng.GATConv(16 + to_add, 16)
 
         if conv_p_layers == 1:
             self.conv_p1 = nng.GATConv(16 + to_add, 1)
@@ -79,6 +83,10 @@ class GCN(torch.nn.Module):
             xa = F.relu(self.conv4(torch.cat((xa, x), dim=1) if self.cat else xa, edge_index, edge_weight))
         # x = F.sigmoid(self.conv4(x, edge_index, edge_weight))
         # print(f'Edge index after conv4: {edge_weight}')
+        if self.conv_layers > 4:
+            xa = F.relu(self.conv5(torch.cat((xa, x), dim=1) if self.cat else xa, edge_index, edge_weight))
+        if self.conv_layers > 5:
+            xa = F.relu(self.conv6(torch.cat((xa, x), dim=1) if self.cat else xa, edge_index, edge_weight))
 
         px = F.relu(self.conv_p1(torch.cat((xa, x), dim=1) if self.cat else xa, edge_index, edge_weight))
         # print(f'x convp1: {x.shape}')
