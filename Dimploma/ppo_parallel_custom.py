@@ -278,7 +278,7 @@ class Agent:
                 end_games.extend(score_of_end_games)
                 env_infos.extend(infos)
 
-            episode, avg_score, better_score = score_logger.log(iteration, end_games, env_infos)
+            episode, avg_score, better_score, best_avg = score_logger.log(iteration, end_games, env_infos)
 
             mem_observations = Batch.from_data_list(mem_observations)
             mem_masks = torch.stack(mem_masks).bool().view(-1, count_of_actions)
@@ -338,14 +338,14 @@ class Agent:
 
             if self.early_stop and iteration % 250 == 0:
                 if self.early_val == -1:
-                    self.early_val = avg_score
+                    self.early_val = best_avg
                     print('Writing to early val:', self.early_val)
                 else:
-                    print('Comparing early val:', self.early_val, ' - ', avg_score)
-                    if self.early_val + 0.01 > avg_score:
+                    print('Comparing early val:', self.early_val, ' - ', best_avg)
+                    if self.early_val + 0.01 > best_avg:
                         print('Stopping early because not many improvements were made')
                         break
-                    self.early_val = avg_score
+                    self.early_val = best_avg
 
             if better_score or iteration % 1000 == 0 or mins >= 30:
                 self.save_model(iteration)

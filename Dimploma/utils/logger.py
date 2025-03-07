@@ -117,4 +117,4 @@ class ScoreLogger(Logger):
                   f'\tbest score {self.mva.best_score if self.score_transformer_fn is None else best_score:.5f}'
                   f'\tbest avg score {self.mva.best_avg_score if self.score_transformer_fn is None else best_avg_score:.5f}')
 
-        return episode, avg_reward, got_better
+        return episode, avg_reward, got_better, self.mva.best_avg_score

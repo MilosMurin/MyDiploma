@@ -32,6 +32,8 @@ class GraphProvider:
         self.fixed_graph = fixed_graph
         if fixed_graph is None:
             self.generate = True
+        else:
+            self.generate = False
 
     def set_size(self, nodes, edges):
         self.nodes = nodes
