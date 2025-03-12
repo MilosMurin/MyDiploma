@@ -176,7 +176,7 @@ class Agent:
         masks_res = []
         while not terminal:
             with torch.no_grad():
-                logits, values, _ = self.model(observation.to(self.device))
+                logits, values = self.model(observation.to(self.device))
 
             logits = torch.where(mask.cpu(), logits.cpu(), torch.tensor(-1e+8).cpu())
             # print(f'Logits shape after: {logits.shape}')
@@ -233,7 +233,7 @@ class Agent:
                 with torch.no_grad():
                     observations = flatten_list(observations)
                     observations = Batch.from_data_list(observations).to(self.device)
-                    logits, values, _ = self.model(observations)
+                    logits, values = self.model(observations)
 
                     rewards = torch.zeros((count_of_processes * count_of_envs))
 
@@ -252,7 +252,7 @@ class Agent:
             observations = Batch.from_data_list(observations).to(self.device)
 
             with torch.no_grad():
-                _, values, _ = self.model(observations)
+                _, values = self.model(observations)
                 values = values.view(count_of_processes, -1, 1).cpu()
 
             for conn_idx in range(count_of_processes):
@@ -295,7 +295,7 @@ class Agent:
                 perm = torch.randperm(buffer_size).view(-1, batch_size)
                 for idx in perm:
                     obs = Batch.from_data_list(mem_observations[idx]).to(self.device)
-                    logits, values, _ = self.model(obs)
+                    logits, values = self.model(obs)
                     logits = torch.where(mem_masks[idx].to(self.device), logits,
                                          torch.tensor(-1e+8, device=self.device))
                     probs = F.softmax(logits, dim=-1)
