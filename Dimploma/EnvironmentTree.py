@@ -5,7 +5,7 @@ from torch_geometric.utils import from_networkx
 
 from Dimploma.util import show_graph
 from Dimploma.utils.graph_provider import GraphProvider
-from util import my_to_networkx
+from Dimploma.util import my_to_networkx
 
 
 class EnvMinimalTree:
