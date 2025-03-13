@@ -23,6 +23,16 @@ def get_out_edges(graph: Data):
     sorted_data = torch.stack((data.sort().indices, data.sort().values))
     return sorted_data
 
+def get_node_sums_norm(graph: Data):
+    sums = torch.zeros(graph.x.shape[0])
+    degrees = torch.zeros(graph.x.shape[0])
+    for i in range(graph.x.shape[0]):
+        sums[i] = graph.edge_attr[torch.logical_or(graph.edge_index[0] == i, graph.edge_index[1] == i), 0].sum()
+        degrees[i] = torch.logical_or(graph.edge_index[0] == i, graph.edge_index[1] == i).sum()
+    sums /= degrees
+    sorted_data = torch.stack((sums.sort().indices, sums.sort().values))
+    return sorted_data
+
 def get_node_sums(graph: Data):
     data = torch.zeros(graph.x.shape[0])
     for i in range(graph.x.shape[0]):
