@@ -42,9 +42,9 @@ class GCN(torch.nn.Module):
             self.conv_p1 = nng.GATConv(16 + to_add, 16)
             self.conv_p2 = nng.GATConv(16 + to_add, 1)
 
-        if conv_layers == 1:
+        if linear_layers == 1:
             self.fc_v1 = nn.Linear(16, 1)
-        if conv_layers > 1:
+        if linear_layers > 1:
             self.fc_v1 = nn.Linear(16, 16)
             self.fc_v2 = nn.Linear(16, 1)
 
