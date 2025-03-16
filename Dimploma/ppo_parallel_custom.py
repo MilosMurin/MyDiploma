@@ -8,26 +8,13 @@ import torch.nn.functional as F
 from torch.optim.lr_scheduler import LinearLR
 from torch.multiprocessing import Process, Pipe
 from torch_geometric.data import Batch, Data
+
+from Dimploma.utils.my_agent_base import MyAgent
 from utils.logger import AgentLogger, ScoreLogger
 from utils.utils import flatten_list, write_to_file
 
 
 # import ipdb
-def test_random(env):
-    terminal = False
-    observation, mask = env.reset()
-    rewards = []
-    actions_res = []
-    masks_res = []
-    while not terminal:
-        action = np.random.choice(np.arange(mask.shape[0])[mask])
-
-        masks_res.append(mask)
-        observation, mask, reward, terminal, _ = env.step(action)
-        rewards.append(reward)
-        actions_res.append(action)
-
-    return env.compute_objective_function(), observation.edge_attr[:, 1], rewards, actions_res #, masks_res
 
 # 1 proces
 # Odohranie hry v niekolkych prostrediach
@@ -128,7 +115,7 @@ def worker(connection, env_params, env_func, count_of_iterations, count_of_envs,
     connection.close()
 
 
-class Agent:
+class Agent(MyAgent):
     def __init__(self, model, gamma=0.99, epsilon=0.1,
                  coef_value=0.5, coef_entropy=0.001, gae_lambda=0.95,
                  name='ppo', path='results/', device='cpu', lr=0.00025, override=False, test=False, early_stop=False):
