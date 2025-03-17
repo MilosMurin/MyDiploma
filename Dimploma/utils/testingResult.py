@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib import pyplot as plt
 
 from Dimploma.utils.my_agent_base import MyAgent
 
@@ -8,14 +9,16 @@ class TestResult:
         self.test_amount = test_amount
         self.node_amount = node_amount
         self.agent_names = []
+        self.agent_colors = []
         self.agents = []
         self.objs = np.zeros(test_amount, dtype=np.float32)
         self.rews = np.zeros(test_amount, dtype=np.float32)
         self.actions = np.zeros((test_amount, node_amount * 2), dtype=np.int16)
 
-    def addAgent(self, name, agent: MyAgent):
+    def addAgent(self, name, agent: MyAgent, color='blue'):
         self.agent_names.append(name)
         self.agents.append(agent)
+        self.agent_colors.append(color)
 
     def test(self, env):
         ags = len(self.agents)
@@ -30,8 +33,16 @@ class TestResult:
                 self.actions[j, i, :len(acts)] = acts
 
 
-    def print_result(self):
+    def print_result(self, rews=False):
         for j in range(len(self.agents)):
             print(self.agent_names[j])
             print(f'Objs: Mean: {self.objs[j].mean():.2f}, Min: {self.objs[j].min():.2f}, Max: {self.objs[j].max():.2f}')
-            print(f'Rews: Mean: {self.rews[j].mean():.2f}, Min: {self.rews[j].min():.2f}, Max: {self.rews[j].max():.2f}')
+            if rews:
+                print(f'Rews: Mean: {self.rews[j].mean():.2f}, Min: {self.rews[j].min():.2f}, Max: {self.rews[j].max():.2f}')
+        plt.bar(self.agent_names, self.objs.mean(axis=1), color=self.agent_colors)
+
+    def print_result_pretty(self):
+        for j in range(len(self.agents)):
+            print(self.agent_names[j])
+            print(f'Priemer: {self.objs[j].mean():.2f}, Min: {self.objs[j].min():.2f}, Max: {self.objs[j].max():.2f}')
+        plt.bar(self.agent_names, self.objs.mean(axis=1), color=self.agent_colors)

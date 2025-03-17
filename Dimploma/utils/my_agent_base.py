@@ -25,3 +25,7 @@ class RandomAgent(MyAgent):
             actions_res.append(action)
 
         return env.compute_objective_function(), observation.edge_attr[:, 1], rewards, actions_res  # , masks_res
+
+class OptimalAgent(MyAgent):
+    def test(self, env):
+        return env.calculate_min_span_tree(), [], [1], []  # , masks_res

@@ -12,7 +12,7 @@ def load_agent_for_testing(path, iteration_amount, graph_provider: GraphProvider
     testing_iter_amount = iteration_amount
     testing_last_path = f'/models/iter_{testing_iter_amount - 1}_last.pt'
     util.plot_training(testesing_agent)
-    loaded_graph = torch.load(testesing_agent + '/graph.pt')
+    loaded_graph = torch.load(testesing_agent + '/graph.pt', map_location=device)
     if loaded_graph is not None:
         util.show_data(loaded_graph)
         graph_provider.set_fixed_graph(loaded_graph)

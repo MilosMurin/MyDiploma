@@ -11,13 +11,10 @@ class GraphProvider:
         self.edges = edges
         self.position = position
 
-        if fixed_graph is None:
-            if nodes < 0:
-                raise ValueError("generate_graph_size must be greater than or equal to 0")
-            else:
-                self.generate = True
+        if fixed_graph is None and nodes < 0:
+            raise ValueError("generate_graph_size must be greater than or equal to 0")
         else:
-            self.fixed_graph = fixed_graph
+            self.set_fixed_graph(fixed_graph)
 
     def get_graph(self):
         if self.generate:
@@ -34,6 +31,8 @@ class GraphProvider:
             self.generate = True
         else:
             self.generate = False
+            self.nodes = self.fixed_graph.x.shape[0]
+            self.edges = self.fixed_graph.edge_index.shape[1]
 
     def set_size(self, nodes, edges):
         self.nodes = nodes
