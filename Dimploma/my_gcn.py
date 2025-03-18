@@ -12,7 +12,7 @@ def _init_weights(module):
 
 
 class GCN(torch.nn.Module):
-    def __init__(self, out_size, num_node_features, cat=True, conv_layers=3, conv_p_layers=1, linear_layers=2, remove_index=False):
+    def __init__(self, out_size, num_node_features, cat=True, conv_layers=3, conv_p_layers=1, linear_layers=2, remove_index=False, position=False):
         super().__init__()
 
         self.out_size = out_size
@@ -23,6 +23,7 @@ class GCN(torch.nn.Module):
         self.linear_layers = linear_layers
         to_add = num_node_features if cat else 0
         self.remove_index = remove_index
+        self.position = position
 
         self.conv1 = nng.GATConv(num_node_features, 16)
         if conv_layers > 1:
@@ -52,6 +53,8 @@ class GCN(torch.nn.Module):
 
     def forward(self, data):
         x = data.x
+        if not self.position:
+            x = x[:, :2]
         if self.remove_index:
             x = x[:, 1:]
         edge_index = data.edge_index
