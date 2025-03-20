@@ -39,9 +39,19 @@ class GCN(torch.nn.Module):
 
         if conv_p_layers == 1:
             self.conv_p1 = nng.GATConv(16 + to_add, 1)
-        elif conv_p_layers > 1:
+
+        if conv_p_layers > 1:
             self.conv_p1 = nng.GATConv(16 + to_add, 16)
             self.conv_p2 = nng.GATConv(16 + to_add, 1)
+
+        if conv_p_layers > 2:
+            self.conv_p2 = nng.GATConv(16 + to_add, 16)
+            self.conv_p3 = nng.GATConv(16 + to_add, 1)
+
+        if conv_p_layers > 3:
+            self.conv_p3 = nng.GATConv(16 + to_add, 16)
+            self.conv_p4 = nng.GATConv(16 + to_add, 1)
+
 
         if linear_layers == 1:
             self.fc_v1 = nn.Linear(16, 1)
@@ -96,6 +106,10 @@ class GCN(torch.nn.Module):
         # px = F.relu(self.conv_p2(torch.cat((xa, x), dim=1), edge_index, edge_weight))
         if self.conv_p_layers > 1:
             px = F.relu(self.conv_p2(torch.cat((px, x), dim=1) if self.cat else px, edge_index, edge_weight))
+        if self.conv_p_layers > 2:
+            px = F.relu(self.conv_p3(torch.cat((px, x), dim=1) if self.cat else px, edge_index, edge_weight))
+        if self.conv_p_layers > 3:
+            px = F.relu(self.conv_p4(torch.cat((px, x), dim=1) if self.cat else px, edge_index, edge_weight))
         # print(f'x convp2: {x.shape}')
 
         px = px.view(-1, min(self.out_size, px.shape[0]))
