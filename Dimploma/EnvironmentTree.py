@@ -129,3 +129,25 @@ class EnvMinimalTreeTwoStep(EnvMinimalTree):
         mask = ((self.graph.edge_index[0] == p1) & (self.graph.edge_index[1] == p2)) | \
                ((self.graph.edge_index[0] == p2) & (self.graph.edge_index[1] == p1))
         return torch.arange(self.graph.edge_index.shape[1], device=self.device)[mask]
+
+
+class EnvMinimalTreeTwoStepRew(EnvMinimalTreeTwoStep):
+    def __init__(self, graph_provider: GraphProvider, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(graph_provider, device, process_i, env_i)
+
+
+    def step(self, action):
+        if self.last_step == -1:
+            return super().step(action) # no last edge means first pick -> no reward based on the min tree
+
+        # get last step and see if the edge (last_step and action) is part of the min tree
+        last_step = self.last_step
+        cl, mask, rew, term, info = super().step(action)
+
+        if rew == 0 and not term:
+            # test if the edge is part of minimal tree
+            if torch.any(((self.graph.edge_index[0] == last_step) & (self.graph.edge_index[1] == action)) | \
+                   ((self.graph.edge_index[0] == action) & (self.graph.edge_index[1] == last_step))):
+                rew = 1
+
+        return cl, mask, rew, term, info
