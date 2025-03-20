@@ -28,11 +28,13 @@ class HybridConv(torch.nn.Module):
 # This is the same model as in model.py, but with an additional attention mechanism 
 # for the actor head that gives every node information about the global state of the graph
 class HybridNetworkGlobal(torch.nn.Module):
-    def __init__(self, state_size, node_count):
+    def __init__(self, state_size, node_count, remove_index=False, position=False):
         super().__init__()
 
         self.state_size = state_size
         self.node_count = node_count
+        self.remove_index = remove_index
+        self.position = position
 
         self.h1 = HybridConv(state_size, 16)
         self.h2 = HybridConv(16, 16)
@@ -48,11 +50,16 @@ class HybridNetworkGlobal(torch.nn.Module):
         self.v2 = nn.Linear(16, 1)
 
     def forward(self, data):
+        x = data.x
+        if not self.position:
+            x = x[:, :2]
+        if self.remove_index:
+            x = x[:, 1:]
         if data.edge_index is not None:
             data.edge_index = torch.cat([data.edge_index, data.edge_index.flip(0)], dim=1)
             data.edge_attr = torch.cat([data.edge_attr, -data.edge_attr], dim=0)
 
-        x, edge_index = data.x, data.adj_t if hasattr(data, 'adj_t') else data.edge_index
+        x, edge_index = x, data.adj_t if hasattr(data, 'adj_t') else data.edge_index
         edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
 
         x_lin, x_conv = self.h1(x, x, edge_index, edge_attr)
