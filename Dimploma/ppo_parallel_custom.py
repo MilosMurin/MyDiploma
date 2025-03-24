@@ -169,7 +169,7 @@ class Agent(MyAgent):
             # print(f'Logits shape after: {logits.shape}')
             probs = F.softmax(logits, dim=-1)
             # print(f'Probs shape: {probs.shape}')
-            actions = probs.multinomial(num_samples=1)
+            actions = probs.argmax()
 
             masks_res.append(mask)
             observation, mask, reward, terminal, _ = env.step(actions.item())

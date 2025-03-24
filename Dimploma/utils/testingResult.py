@@ -44,5 +44,16 @@ class TestResult:
     def print_result_pretty(self):
         for j in range(len(self.agents)):
             print(self.agent_names[j])
-            print(f'Priemer: {self.objs[j].mean():.2f}, Min: {self.objs[j].min():.2f}, Max: {self.objs[j].max():.2f}')
+            self.print_with_test(j)
+            # print(f'Priemer: {self.objs[j].mean():.2f}, Min: {self.objs[j].min():.2f}, Max: {self.objs[j].max():.2f}')
         plt.bar(self.agent_names, self.objs.mean(axis=1), color=self.agent_colors)
+
+
+    def print_with_test(self, a_index, test_equality=True):
+        mean_r = self.objs[a_index].mean()
+        min_r = self.objs[a_index].min()
+        max_r = self.objs[a_index].max()
+        if test_equality and (mean_r == min_r and mean_r == max_r):
+            print(f'Priemer, Min, Max: {mean_r:.2f}')
+        else:
+            print(f'Priemer: {mean_r:.2f}, Min: {min_r:.2f}, Max: {max_r:.2f}')
