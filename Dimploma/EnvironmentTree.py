@@ -151,3 +151,25 @@ class EnvMinimalTreeTwoStepRew(EnvMinimalTreeTwoStep):
                 rew = 1
 
         return cl, mask, rew, term, info
+
+class EnvMinimalTreeTwoStepHeur(EnvMinimalTreeTwoStep):
+    def __init__(self, graph_provider: GraphProvider, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(graph_provider, device, process_i, env_i)
+
+    def step(self, action):
+        if self.last_step == -1:
+            # no last edge - pass whatever comes from parent
+            return super().step(action)
+
+        index = self.find_edge(self.last_step, action)  # the chosen edge
+        temp = self.parent[self.graph.edge_index]
+        cycle_mask = temp[0] != temp[1]  # covers also if the edge was already picked
+        min_pos = self.graph.edge_weight[cycle_mask].min()  # the lowest price for an edge
+
+        cl, mask, rew, term, info = super().step(action)
+
+        if rew == 0 and not term: # if reward is 0 and not term - just a normal step with no reward from anything else - i can edit the reward
+            if self.graph.edge_weight[index] == min_pos: # if an edge with the lowest possible value was picked
+                rew = 1
+
+        return cl, mask, rew, term, info
