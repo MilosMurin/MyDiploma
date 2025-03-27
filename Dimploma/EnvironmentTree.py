@@ -1,6 +1,6 @@
 import torch
 from torch_geometric.data import Data
-from networkx.algorithms.tree import minimum_spanning_tree
+from networkx.algorithms.tree import minimum_spanning_tree, maximum_spanning_tree
 from torch_geometric.utils import from_networkx
 
 from Dimploma.util import show_graph
@@ -36,6 +36,9 @@ class EnvMinimalTree:
         cl = self.graph.clone().cpu()
         return cl, (cl.edge_attr[:, 1] != 1)
 
+    def calculate_reward(self):
+        return self.compute_objective_function() / -self.min_tree_score + 2  # +2 so that best reward is 1
+
     def step(self, action):
         self.steps += 1
         self.graph.edge_attr[action, 1] = 1
@@ -56,7 +59,7 @@ class EnvMinimalTree:
         #     reward = -1
 
         if terminal and reward == 0:
-            reward = (self.compute_objective_function() / -self.min_tree_score + 2) * terminal  # +2 so that best reward is 1
+            reward = self.calculate_reward() * terminal
 
         # if terminal:
         #     print("reward: ", reward)
@@ -173,3 +176,21 @@ class EnvMinimalTreeTwoStepHeur(EnvMinimalTreeTwoStep):
                 rew = 1
 
         return cl, mask, rew, term, info
+
+class EnvMaximalTreeTwoStepHeur(EnvMinimalTreeTwoStep):
+    def __init__(self, graph_provider, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(graph_provider, device, process_i, env_i)
+
+    def calculate_min_span_tree(self): # calculating maximal span tree
+        g = my_to_networkx(self.graph.clone().cpu())
+        min_tree = maximum_spanning_tree(g, 'edge_weight')
+        self.min_tree = from_networkx(min_tree)
+        self.min_tree_score = self.min_tree.edge_weight.sum().item() / 2
+        return self.min_tree_score
+
+    def calculate_reward(self):
+        return self.compute_objective_function() / self.min_tree_score
+
+
+
+
