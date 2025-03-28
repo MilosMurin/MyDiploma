@@ -219,7 +219,10 @@ class Agent(MyAgent):
 
                 with torch.no_grad():
                     observations = flatten_list(observations)
-                    observations = Batch.from_data_list(observations).to(self.device)
+                    try:
+                        observations = Batch.from_data_list(observations).to(self.device)
+                    except AttributeError:
+                        observations = torch.stack(observations).to(self.device)
                     logits, values = self.model(observations)
 
                     rewards = torch.zeros((count_of_processes * count_of_envs))
@@ -236,7 +239,11 @@ class Agent(MyAgent):
 
             observations = [conn.recv() for conn in connections]  # 3 B
             observations = flatten_list(observations)
-            observations = Batch.from_data_list(observations).to(self.device)
+
+            try:
+                observations = Batch.from_data_list(observations).to(self.device)
+            except AttributeError:
+                observations = torch.stack(observations).to(self.device)
 
             with torch.no_grad():
                 _, values = self.model(observations)
@@ -267,7 +274,10 @@ class Agent(MyAgent):
 
             episode, avg_score, better_score, best_avg = score_logger.log(iteration, end_games, env_infos)
 
-            mem_observations = Batch.from_data_list(mem_observations)
+            try:
+                mem_observations = Batch.from_data_list(mem_observations)
+            except AttributeError:
+                mem_observations = torch.stack(mem_observations)
             mem_masks = torch.stack(mem_masks).bool().view(-1, count_of_actions)
             mem_actions = torch.stack(mem_actions).view(-1, 1)
             mem_log_probs = torch.stack(mem_log_probs).view(-1, 1)
@@ -281,7 +291,11 @@ class Agent(MyAgent):
             for epoch in range(count_of_epochs):
                 perm = torch.randperm(buffer_size).view(-1, batch_size)
                 for idx in perm:
-                    obs = Batch.from_data_list(mem_observations[idx]).to(self.device)
+
+                    try:
+                        obs = Batch.from_data_list(mem_observations[idx]).to(self.device)
+                    except AttributeError:
+                        obs = mem_observations[idx].to(self.device)
                     logits, values = self.model(obs)
                     logits = torch.where(mem_masks[idx].to(self.device), logits,
                                          torch.tensor(-1e+8, device=self.device))

@@ -9,7 +9,7 @@ class FCN(nn.Module):
         self.node_amount = node_amount
         self.node_features = node_features
 
-        matrix_size = node_amount * node_features
+        matrix_size = node_amount * node_amount
 
         self.linear1 = nn.Linear(matrix_size, matrix_size * 2)
         self.linear2 = nn.Linear(matrix_size * 2, matrix_size * 2)
@@ -17,12 +17,12 @@ class FCN(nn.Module):
 
         self.linear_p = nn.Linear(matrix_size, node_amount)
 
-        self.lin_v1 = nn.Linear(matrix_size * 2, matrix_size)
+        self.lin_v1 = nn.Linear(matrix_size, 1)
 
 
     def forward(self, matrix):
 
-        x = F.relu(self.linear1(matrix.flatten()))
+        x = F.relu(self.linear1(matrix.flatten(start_dim=1)))
         x = F.relu(self.linear2(x))
         x = F.relu(self.linear3(x))
 
