@@ -24,7 +24,7 @@ class RandomAgent(MyAgent):
             rewards.append(reward)
             actions_res.append(action)
 
-        return env.compute_objective_function(), observation.edge_attr[:, 1], rewards, actions_res  # , masks_res
+        return env.compute_objective_function(), env.graph.edge_attr[:, 1], rewards, actions_res  # , masks_res
 
 class OptimalAgent(MyAgent):
     def test(self, env):

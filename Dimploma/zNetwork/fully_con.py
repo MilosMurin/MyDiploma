@@ -21,8 +21,12 @@ class FCN(nn.Module):
 
 
     def forward(self, matrix):
+        if len(matrix.shape) > 2:
+            matrix = matrix.flatten(start_dim=1)
+        else:
+            matrix = matrix.flatten()
 
-        x = F.relu(self.linear1(matrix.flatten(start_dim=1)))
+        x = F.relu(self.linear1(matrix))
         x = F.relu(self.linear2(x))
         x = F.relu(self.linear3(x))
 
