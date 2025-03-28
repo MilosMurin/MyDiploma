@@ -7,11 +7,11 @@ import torch_geometric.nn as nng
 
 def _init_weights(module):
     if isinstance(module, nn.Linear):
-        torch.nn.init.xavier_normal_(module.weight)
-        torch.nn.init.zeros_(module.bias)
+        nn.init.xavier_normal_(module.weight)
+        nn.init.zeros_(module.bias)
 
 
-class GCN(torch.nn.Module):
+class GCN(nn.Module):
     def __init__(self, out_size, num_node_features, cat=True, conv_layers=3, conv_p_layers=1, linear_layers=2, remove_index=False, position=False):
         super().__init__()
 
