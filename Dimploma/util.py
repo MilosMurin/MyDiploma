@@ -178,8 +178,8 @@ def print_graph_info(graph: Data):
             edges += 1
 
 
-def data_to_matrix(data: Data):
+def data_to_matrix(data: Data, normalized = True):
     matrix = torch.zeros((data.x.shape[0], data.x.shape[0]))
-    matrix[data.edge_index[0], data.edge_index[1]] = data.edge_weight
-    matrix[data.edge_index[1], data.edge_index[0]] = data.edge_weight
+    matrix[data.edge_index[0], data.edge_index[1]] = data.edge_attr[:, 0] if normalized else data.edge_weight
+    matrix[data.edge_index[1], data.edge_index[0]] = data.edge_attr[:, 0] if normalized else data.edge_weight
     return matrix

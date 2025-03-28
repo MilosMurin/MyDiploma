@@ -3,16 +3,17 @@ from torch_geometric.data import Data
 from networkx.algorithms.tree import minimum_spanning_tree, maximum_spanning_tree
 from torch_geometric.utils import from_networkx
 
-from Dimploma.util import show_graph
+from Dimploma.util import show_graph, my_to_networkx, data_to_matrix
 from Dimploma.utils.graph_provider import GraphProvider
-from Dimploma.util import my_to_networkx
 
 
 class EnvMinimalTree:
-    def __init__(self, graph_provider: GraphProvider, device='cpu', process_i=-1, env_i=-1):
+    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
         self.device = device
         self.graph_provider = graph_provider
         self.graph = self.graph_provider.get_graph().to(self.device)
+        self.use_matrix = use_matrix
+        self.matrix = data_to_matrix(self.graph)
         self.processI = process_i
         self.envI = env_i
         self.min_tree_score = 0
@@ -34,6 +35,8 @@ class EnvMinimalTree:
         self.calculate_min_span_tree()
         self.parent = torch.arange(self.graph.x.shape[0], device=self.device)
         cl = self.graph.clone().cpu()
+        if self.use_matrix:
+            cl = self.matrix.clone().cpu()
         return cl, (cl.edge_attr[:, 1] != 1)
 
     def calculate_reward(self):
@@ -71,6 +74,8 @@ class EnvMinimalTree:
         # print("Base mask", base_mask)
         # print("Cycle mask", cycle_mask)
 
+        if self.use_matrix:
+            cl = self.matrix.clone().cpu()
         return cl, torch.logical_and(base_mask, cycle_mask).cpu(), reward, terminal, -1
 
     def compute_objective_function(self):
@@ -94,12 +99,11 @@ class EnvMinimalTreeTwoStep(EnvMinimalTree):
     def reset(self):
         self.last_step = -1
         cl, _ = super().reset()
-        return cl, torch.ones(cl.x.shape[0], dtype=torch.bool)
+        return cl, torch.ones(self.graph.x.shape[0], dtype=torch.bool)
 
     def step(self, action):
         if self.last_step == -1:
             self.last_step = action
-            cl = self.graph.clone().cpu()
 
             sub_mask1 = self.graph.edge_index[0] == self.last_step
             sub_mask2 = self.graph.edge_index[1] == self.last_step
@@ -111,9 +115,12 @@ class EnvMinimalTreeTwoStep(EnvMinimalTree):
 
             cycle_mask = self.parent != self.parent[self.last_step]
 
-            # only setting the mark of last step in the clone so i don't have to reset it in the env
-            cl.x[self.last_step, 1] = 1
-
+            if self.use_matrix:
+                cl = self.matrix.clone().cpu()
+            else:
+                # only setting the mark of last step in the clone so i don't have to reset it in the env
+                cl = self.graph.clone().cpu()
+                cl.x[self.last_step, 1] = 1
             return cl, torch.logical_and(exist_edge_mask, cycle_mask).cpu(), 0, False, -1
         else:
             edge_index = self.find_edge(self.last_step, action)
