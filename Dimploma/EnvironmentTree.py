@@ -37,7 +37,7 @@ class EnvMinimalTree:
         cl = self.graph.clone().cpu()
         if self.use_matrix:
             cl = self.matrix.clone().cpu()
-        return cl, (cl.edge_attr[:, 1] != 1)
+        return cl, (self.graph.edge_attr[:, 1] != 1)
 
     def calculate_reward(self):
         return self.compute_objective_function() / -self.min_tree_score + 2  # +2 so that best reward is 1
@@ -92,8 +92,8 @@ class EnvMinimalTree:
 
 
 class EnvMinimalTreeTwoStep(EnvMinimalTree):
-    def __init__(self, graph_provider: GraphProvider, device='cpu', process_i=-1, env_i=-1):
-        super().__init__(graph_provider, device, process_i, env_i)
+    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(graph_provider, use_matrix, device, process_i, env_i)
         self.last_step = -1
 
     def reset(self):
@@ -142,8 +142,8 @@ class EnvMinimalTreeTwoStep(EnvMinimalTree):
 
 
 class EnvMinimalTreeTwoStepRew(EnvMinimalTreeTwoStep):
-    def __init__(self, graph_provider: GraphProvider, device='cpu', process_i=-1, env_i=-1):
-        super().__init__(graph_provider, device, process_i, env_i)
+    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(graph_provider, use_matrix, device, process_i, env_i)
 
 
     def step(self, action):
@@ -163,8 +163,8 @@ class EnvMinimalTreeTwoStepRew(EnvMinimalTreeTwoStep):
         return cl, mask, rew, term, info
 
 class EnvMinimalTreeTwoStepHeur(EnvMinimalTreeTwoStep):
-    def __init__(self, graph_provider: GraphProvider, device='cpu', process_i=-1, env_i=-1):
-        super().__init__(graph_provider, device, process_i, env_i)
+    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(graph_provider, use_matrix, device, process_i, env_i)
 
     def step(self, action):
         if self.last_step == -1:
@@ -185,8 +185,8 @@ class EnvMinimalTreeTwoStepHeur(EnvMinimalTreeTwoStep):
         return cl, mask, rew, term, info
 
 class EnvMaximalTreeTwoStep(EnvMinimalTreeTwoStep):
-    def __init__(self, graph_provider, device='cpu', process_i=-1, env_i=-1):
-        super().__init__(graph_provider, device, process_i, env_i)
+    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(graph_provider, use_matrix, device, process_i, env_i)
 
     def calculate_min_span_tree(self): # calculating maximal span tree
         g = my_to_networkx(self.graph.clone().cpu())
@@ -200,8 +200,8 @@ class EnvMaximalTreeTwoStep(EnvMinimalTreeTwoStep):
 
 
 class EnvMaximalTreeTwoStepHeur(EnvMaximalTreeTwoStep):
-    def __init__(self, graph_provider: GraphProvider, device='cpu', process_i=-1, env_i=-1):
-        super().__init__(graph_provider, device, process_i, env_i)
+    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(graph_provider, use_matrix, device, process_i, env_i)
 
     def step(self, action):
         if self.last_step == -1:
