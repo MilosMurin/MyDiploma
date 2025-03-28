@@ -177,3 +177,9 @@ def print_graph_info(graph: Data):
                 print(f'Edge {x}->{e[1]} - Price: {graph.edge_attr[edges, 0]}, Mark: {graph.edge_attr[edges, 1]}')
             edges += 1
 
+
+def data_to_matrix(data: Data):
+    matrix = torch.zeros((data.x.shape[0], data.x.shape[0]))
+    matrix[data.edge_index[0], data.edge_index[1]] = data.edge_weight
+    matrix[data.edge_index[1], data.edge_index[0]] = data.edge_weight
+    return matrix

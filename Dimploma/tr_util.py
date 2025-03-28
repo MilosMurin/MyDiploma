@@ -2,12 +2,12 @@
 import torch
 
 from Dimploma import util
-from Dimploma.EnvironmentTree import EnvMinimalTreeTwoStep
+from Dimploma.EnvironmentTree import EnvMinimalTreeTwoStep, EnvMaximalTreeTwoStep
 from Dimploma.ppo_parallel_custom import Agent
 from Dimploma.utils.graph_provider import GraphProvider
 
 
-def load_agent_for_testing(path, iteration_amount, graph_provider: GraphProvider, gcn, device='cpu'):
+def load_agent_for_testing(path, iteration_amount, graph_provider: GraphProvider, gcn, device='cpu', maximal=False):
     testesing_agent = path
     testing_iter_amount = iteration_amount
     testing_last_path = f'/models/iter_{testing_iter_amount - 1}_last.pt'
@@ -17,7 +17,10 @@ def load_agent_for_testing(path, iteration_amount, graph_provider: GraphProvider
         util.show_data(loaded_graph)
         graph_provider.set_fixed_graph(loaded_graph)
 
-    test_env = EnvMinimalTreeTwoStep(graph_provider)
+    if maximal:
+        test_env = EnvMaximalTreeTwoStep(graph_provider)
+    else:
+        test_env = EnvMinimalTreeTwoStep(graph_provider)
 
     agent_test = Agent(model=gcn, device=device, name=path + "_test", override=True, test=True)
 
