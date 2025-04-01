@@ -135,7 +135,7 @@ class Agent(MyAgent):
 
         self.name = name
 
-        self.path = os.path.join(path, f'{datetime.now().strftime("%y%m%d_%H#")}{name}/')
+        self.path = os.path.join(path, f'{datetime.now().strftime("%y%m%d_%H%M#")}{name}/')
 
         if not test:
             if not override and os.path.exists(self.path):
