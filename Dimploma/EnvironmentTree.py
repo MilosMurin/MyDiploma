@@ -11,6 +11,16 @@ class EnvInfo:
         self.graph_provider = graph_provider
         self.matrix_env = matrix_env
 
+    def create_graph(self, device='cpu'):
+        return self.graph_provider.get_graph().to(device)
+
+    def get_observation(self, graph: Data, matrix, steps, last_step=-1):
+        cl = graph.clone().cpu()
+        if last_step != -1:
+            # only setting the mark of last step in the clone so i don't have to reset it in the env
+            cl.x[last_step, 1] = 1
+        return cl
+
 class MatrixEnvInfo(EnvInfo):
     def __init__(self, graph_provider: GraphProvider, edge_info=False, node_info=False, step_info=False, adj_matrix
     =False):
@@ -20,14 +30,25 @@ class MatrixEnvInfo(EnvInfo):
         self.step_info = step_info
         self.adj_matrix = adj_matrix
 
+    def get_observation(self, graph: Data, matrix, steps, last_step=-1):
+        cl = super().get_observation(graph, matrix, steps, last_step)
+        obs = []
+        if self.adj_matrix:
+            obs.append(matrix.clone().cpu().flatten())
+        if self.edge_info:
+            obs.append(graph.edge_attr[:, 1])
+        if self.node_info:
+            obs.append(cl.x[:, 1])
+        if self.step_info:
+            obs.append(torch.tensor([steps]))
+        return torch.cat(obs)
 
 
 class EnvMinimalTree:
-    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
+    def __init__(self, env_info: EnvInfo, device='cpu', process_i=-1, env_i=-1):
         self.device = device
-        self.graph_provider = graph_provider
-        self.graph = self.graph_provider.get_graph().to(self.device)
-        self.use_matrix = use_matrix
+        self.env_info = env_info
+        self.graph = self.env_info.create_graph()
         self.matrix = data_to_matrix(self.graph)
         self.processI = process_i
         self.envI = env_i
@@ -46,13 +67,11 @@ class EnvMinimalTree:
 
     def reset(self):
         self.steps = 0
-        self.graph = self.graph_provider.get_graph().to(self.device)
+        self.graph = self.env_info.create_graph()
         self.matrix = data_to_matrix(self.graph)
         self.calculate_min_span_tree()
         self.parent = torch.arange(self.graph.x.shape[0], device=self.device)
-        cl = self.graph.clone().cpu()
-        if self.use_matrix:
-            cl = torch.cat([self.matrix.clone().cpu().flatten(), self.graph.edge_attr[:, 1], cl.x[:, 1], torch.tensor([self.steps])])
+        cl = self.env_info.get_observation(self.graph, self.matrix, self.steps)
         return cl, (self.graph.edge_attr[:, 1] != 1)
 
     def calculate_reward(self):
@@ -61,7 +80,7 @@ class EnvMinimalTree:
     def step(self, action):
         self.steps += 1
         self.graph.edge_attr[action, 1] = 1
-        cl = self.graph.clone().cpu()
+        cl = self.env_info.get_observation(self.graph, self.matrix, self.steps)
 
         # sel_graph_g = self.get_selected_treex()
 
@@ -89,9 +108,6 @@ class EnvMinimalTree:
 
         # print("Base mask", base_mask)
         # print("Cycle mask", cycle_mask)
-
-        if self.use_matrix:
-            cl = torch.cat([self.matrix.clone().cpu().flatten(), self.graph.edge_attr[:, 0], cl.x[:, 1], torch.tensor([self.steps])])
         return cl, torch.logical_and(base_mask, cycle_mask).cpu(), reward, terminal, -1
 
     def compute_objective_function(self):
@@ -108,8 +124,8 @@ class EnvMinimalTree:
 
 
 class EnvMinimalTreeTwoStep(EnvMinimalTree):
-    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
-        super().__init__(graph_provider, use_matrix, device, process_i, env_i)
+    def __init__(self, env_info: EnvInfo, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(env_info, device, process_i, env_i)
         self.last_step = -1
 
     def reset(self):
@@ -131,12 +147,7 @@ class EnvMinimalTreeTwoStep(EnvMinimalTree):
 
             cycle_mask = self.parent != self.parent[self.last_step]
 
-            cl = self.graph.clone().cpu()
-            # only setting the mark of last step in the clone so i don't have to reset it in the env
-            cl.x[self.last_step, 1] = 1
-
-            if self.use_matrix:
-                cl = torch.cat([self.matrix.clone().cpu().flatten(), self.graph.edge_attr[:, 1], cl.x[:, 1], torch.tensor([self.steps])])
+            cl = self.env_info.get_observation(self.graph, self.matrix, self.steps, self.last_step)
 
             return cl, torch.logical_and(exist_edge_mask, cycle_mask).cpu(), 0, False, -1
         else:
@@ -159,8 +170,8 @@ class EnvMinimalTreeTwoStep(EnvMinimalTree):
 
 
 class EnvMinimalTreeTwoStepRew(EnvMinimalTreeTwoStep):
-    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
-        super().__init__(graph_provider, use_matrix, device, process_i, env_i)
+    def __init__(self, env_info: EnvInfo, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(env_info, device, process_i, env_i)
 
 
     def step(self, action):
@@ -176,12 +187,11 @@ class EnvMinimalTreeTwoStepRew(EnvMinimalTreeTwoStep):
             if torch.any(((self.graph.edge_index[0] == last_step) & (self.graph.edge_index[1] == action)) | \
                    ((self.graph.edge_index[0] == action) & (self.graph.edge_index[1] == last_step))):
                 rew = 1
-
         return cl, mask, rew, term, info
 
 class EnvMinimalTreeTwoStepHeur(EnvMinimalTreeTwoStep):
-    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
-        super().__init__(graph_provider, use_matrix, device, process_i, env_i)
+    def __init__(self, env_info: EnvInfo, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(env_info, device, process_i, env_i)
 
     def step(self, action):
         if self.last_step == -1:
@@ -198,14 +208,14 @@ class EnvMinimalTreeTwoStepHeur(EnvMinimalTreeTwoStep):
         if rew == 0 and not term: # if reward is 0 and not term - just a normal step with no reward from anything else - i can edit the reward
             if self.graph.edge_weight[index] == min_pos: # if an edge with the lowest possible value was picked
                 rew = .1
-            else:
-                rew = -.1
+            # else:
+            #     rew = -.1
 
         return cl, mask, rew, term, info
 
 class EnvMaximalTreeTwoStep(EnvMinimalTreeTwoStep):
-    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
-        super().__init__(graph_provider, use_matrix, device, process_i, env_i)
+    def __init__(self, env_info: EnvInfo, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(env_info, device, process_i, env_i)
 
     def calculate_min_span_tree(self): # calculating maximal span tree
         g = my_to_networkx(self.graph.clone().cpu())
@@ -219,8 +229,8 @@ class EnvMaximalTreeTwoStep(EnvMinimalTreeTwoStep):
 
 
 class EnvMaximalTreeTwoStepHeur(EnvMaximalTreeTwoStep):
-    def __init__(self, graph_provider: GraphProvider, use_matrix=False, device='cpu', process_i=-1, env_i=-1):
-        super().__init__(graph_provider, use_matrix, device, process_i, env_i)
+    def __init__(self, env_info: EnvInfo, device='cpu', process_i=-1, env_i=-1):
+        super().__init__(env_info, device, process_i, env_i)
 
     def step(self, action):
         if self.last_step == -1:
