@@ -183,3 +183,17 @@ def data_to_matrix(data: Data, normalized = True):
     matrix[data.edge_index[0], data.edge_index[1]] = data.edge_attr[:, 0] if normalized else data.edge_weight
     matrix[data.edge_index[1], data.edge_index[0]] = data.edge_attr[:, 0] if normalized else data.edge_weight
     return matrix
+
+def data_to_edge_graph(graph: Data):
+    x = torch.arange(graph.x.shape[0] + graph.edge_index.shape[1], device=graph.x.device)
+    x[graph.x.shape[0]:] = -x[graph.x.shape[0]:] + 9
+    x = torch.stack([x, torch.zeros(x.shape[0])])
+    x[1, graph.x.shape[0]:] = graph.edge_attr[:, 0]
+
+    edge_index = torch.zeros((2, graph.edge_index.shape[1] * 2), device=graph.x.device, dtype=torch.int64)
+    edge_index[0, :graph.edge_index.shape[1]] = graph.edge_index[0, :]
+    edge_index[0, graph.edge_index.shape[1]:] = x[0, graph.x.shape[0]:]
+    edge_index[1, :graph.edge_index.shape[1]] = x[0, graph.x.shape[0]:]
+    edge_index[1, graph.edge_index.shape[1]:] = graph.edge_index[1, :]
+
+    return Data(x=x, edge_index=edge_index)
