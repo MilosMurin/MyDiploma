@@ -208,8 +208,8 @@ class EnvMinimalTreeTwoStepHeur(EnvMinimalTreeTwoStep):
         if rew == 0 and not term: # if reward is 0 and not term - just a normal step with no reward from anything else - i can edit the reward
             if self.graph.edge_weight[index] == min_pos: # if an edge with the lowest possible value was picked
                 rew = .1
-            # else:
-            #     rew = -.1
+            else:
+                rew = -.1
 
         return cl, mask, rew, term, info
 

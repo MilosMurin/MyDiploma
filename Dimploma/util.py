@@ -20,8 +20,9 @@ def get_out_edges(graph: Data):
     data = torch.zeros(graph.x.shape[0])
     for i in range(graph.x.shape[0]):
         data[i] = torch.logical_or(graph.edge_index[0] == i, graph.edge_index[1] == i).sum()
-    sorted_data = torch.stack((data.sort().indices, data.sort().values))
-    return sorted_data
+    # sorted_data = torch.stack((data.sort().indices, data.sort().values))
+    # return sorted_data
+    return data
 
 def get_node_sums_norm(graph: Data):
     sums = torch.zeros(graph.x.shape[0])
@@ -38,8 +39,9 @@ def get_node_sums(graph: Data):
     for i in range(graph.x.shape[0]):
         data[i] = graph.edge_attr[
             torch.logical_or(graph.edge_index[0] == i, graph.edge_index[1] == i), 0].sum()
-    sorted_data = torch.stack((data.sort().indices, data.sort().values))
-    return sorted_data
+    # sorted_data = torch.stack((data.sort().indices, data.sort().values))
+    # return sorted_data
+    return data
 
 def show_data(da):
     gr = my_to_networkx(da)
