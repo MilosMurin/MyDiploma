@@ -374,4 +374,4 @@ class Agent(MyAgent):
 
     def load_model(self, path):
         print('Loading model from', path)
-        self.model.load_state_dict(torch.load(path, map_location=self.device))
+        self.model.load_state_dict(torch.load(path, map_location=self.device, weights_only=False))

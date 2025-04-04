@@ -12,11 +12,12 @@ def _init_weights(module):
 
 
 class GCN(nn.Module):
-    def __init__(self, out_size, num_node_features, cat=True, conv_layers=3, conv_p_layers=1, linear_layers=2, remove_index=False, position=False):
+    def __init__(self, out_size, num_node_features, cat=True, conv_layers=3, conv_p_layers=1, linear_layers=2, remove_index=False, position=False, edge_dim=2):
         super().__init__()
 
         self.out_size = out_size
         self.num_node_features = num_node_features
+        self.edge_dim = edge_dim
         self.cat = cat
         self.conv_layers = conv_layers
         self.conv_p_layers = conv_p_layers
@@ -25,32 +26,32 @@ class GCN(nn.Module):
         self.remove_index = remove_index
         self.position = position
 
-        self.conv1 = nng.GATConv(num_node_features, 16)
+        self.conv1 = nng.GATConv(num_node_features, 16, edge_dim=self.edge_dim)
         if conv_layers > 1:
-            self.conv2 = nng.GATConv(16 + to_add, 16)
+            self.conv2 = nng.GATConv(16 + to_add, 16, edge_dim=self.edge_dim)
         if conv_layers > 2:
-            self.conv3 = nng.GATConv(16 + to_add, 16)
+            self.conv3 = nng.GATConv(16 + to_add, 16, edge_dim=self.edge_dim)
         if conv_layers > 3:
-            self.conv4 = nng.GATConv(16 + to_add, 16)
+            self.conv4 = nng.GATConv(16 + to_add, 16, edge_dim=self.edge_dim)
         if conv_layers > 4:
-            self.conv5 = nng.GATConv(16 + to_add, 16)
+            self.conv5 = nng.GATConv(16 + to_add, 16, edge_dim=self.edge_dim)
         if conv_layers > 5:
-            self.conv6 = nng.GATConv(16 + to_add, 16)
+            self.conv6 = nng.GATConv(16 + to_add, 16, edge_dim=self.edge_dim)
 
         if conv_p_layers == 1:
-            self.conv_p1 = nng.GATConv(16 + to_add, 1)
+            self.conv_p1 = nng.GATConv(16 + to_add, 1, edge_dim=self.edge_dim)
 
         if conv_p_layers > 1:
-            self.conv_p1 = nng.GATConv(16 + to_add, 16)
-            self.conv_p2 = nng.GATConv(16 + to_add, 1)
+            self.conv_p1 = nng.GATConv(16 + to_add, 16, edge_dim=self.edge_dim)
+            self.conv_p2 = nng.GATConv(16 + to_add, 1, edge_dim=self.edge_dim)
 
         if conv_p_layers > 2:
-            self.conv_p2 = nng.GATConv(16 + to_add, 16)
-            self.conv_p3 = nng.GATConv(16 + to_add, 1)
+            self.conv_p2 = nng.GATConv(16 + to_add, 16, edge_dim=self.edge_dim)
+            self.conv_p3 = nng.GATConv(16 + to_add, 1, edge_dim=self.edge_dim)
 
         if conv_p_layers > 3:
-            self.conv_p3 = nng.GATConv(16 + to_add, 16)
-            self.conv_p4 = nng.GATConv(16 + to_add, 1)
+            self.conv_p3 = nng.GATConv(16 + to_add, 16, edge_dim=self.edge_dim)
+            self.conv_p4 = nng.GATConv(16 + to_add, 1, edge_dim=self.edge_dim)
 
 
         if linear_layers == 1:
