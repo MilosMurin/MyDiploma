@@ -6,12 +6,12 @@ from torch_geometric.data import Batch
  
 
 class HybridConv(torch.nn.Module):
-    def __init__(self, in_features, out_features):
+    def __init__(self, in_features, out_features, edge_dim=None):
         super().__init__()
         self.state_size = in_features
 
         self.lin = nn.Linear(in_features, out_features)
-        self.conv = GATConv(in_features * 2, out_features)
+        self.conv = GATConv(in_features * 2, out_features, edge_dim=edge_dim)
 
     def out_channels(self):
         return self.lin.out_features + self.conv.out_channels
@@ -28,18 +28,19 @@ class HybridConv(torch.nn.Module):
 # This is the same model as in model.py, but with an additional attention mechanism 
 # for the actor head that gives every node information about the global state of the graph
 class HybridNetworkGlobal(torch.nn.Module):
-    def __init__(self, state_size, node_count, remove_index=False, position=False):
+    def __init__(self, state_size, node_count, remove_index=False, position=False, edge_dim=None):
         super().__init__()
 
         self.state_size = state_size
         self.node_count = node_count
         self.remove_index = remove_index
         self.position = position
+        self.edge_dim = edge_dim
 
-        self.h1 = HybridConv(state_size, 16)
-        self.h2 = HybridConv(16, 16)
-        self.h3 = HybridConv(16, 16)
-        self.h4 = HybridConv(16, 16)
+        self.h1 = HybridConv(state_size, 16, edge_dim=edge_dim)
+        self.h2 = HybridConv(16, 16, edge_dim=edge_dim)
+        self.h3 = HybridConv(16, 16, edge_dim=edge_dim)
+        self.h4 = HybridConv(16, 16, edge_dim=edge_dim)
 
         self.weighting_attention = nn.Linear(self.h4.out_channels(), 1)
 
@@ -57,10 +58,10 @@ class HybridNetworkGlobal(torch.nn.Module):
             x = x[:, 1:]
         if data.edge_index is not None:
             data.edge_index = torch.cat([data.edge_index, data.edge_index.flip(0)], dim=1)
-            data.edge_attr = torch.cat([data.edge_attr, -data.edge_attr], dim=0)
+            data.edge_attr = torch.cat([data.edge_attr[:, :2], -data.edge_attr[:, :2]], dim=0)
 
         x, edge_index = x, data.adj_t if hasattr(data, 'adj_t') else data.edge_index
-        edge_attr = data.edge_attr if hasattr(data, 'edge_attr') else None
+        edge_attr = data.edge_attr[:, :2] if hasattr(data, 'edge_attr') else None
 
         x_lin, x_conv = self.h1(x, x, edge_index, edge_attr)
         x_lin, x_conv = F.relu(x_lin), F.relu(x_conv)
