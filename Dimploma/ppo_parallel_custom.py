@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 import sys
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import LinearLR
@@ -118,7 +119,8 @@ def worker(connection, env_params, env_func, count_of_iterations, count_of_envs,
 class Agent(MyAgent):
     def __init__(self, model, gamma=0.99, epsilon=0.1,
                  coef_value=0.5, coef_entropy=0.001, gae_lambda=0.95,
-                 name='ppo', path='results/', device='cpu', lr=0.00025, override=False, test=False, early_stop=False):
+                 name='ppo', path='results/', device='cpu', lr=0.00025,
+                 override=False, test=False, early_stop=False, actions_dbg=-1):
 
         self.model = model
         self.model.to(device)
@@ -136,6 +138,11 @@ class Agent(MyAgent):
         self.name = name
 
         self.path = os.path.join(path, f'{datetime.now().strftime("%y%m%d_%H%M#")}{name}/')
+
+        self.actions_dbg = actions_dbg
+        if self.actions_dbg != -1:
+            self.header_actions = ['iter'] + list(range(10))
+            self.path_actions = os.path.join(self.path, 'actions_debug.csv')
 
         if not test:
             if not override and os.path.exists(self.path):
@@ -188,6 +195,10 @@ class Agent(MyAgent):
         print('Training is starting')
         self.finish_training = False
         self.early_val = -1
+
+        if self.actions_dbg != -1:
+            pd.DataFrame(columns=self.header_actions).to_csv(self.path_actions, index=False)
+
 
         loss_logger = AgentLogger(f'{self.path}/loss.csv',
                                   ['avg_score', 'policy', 'value', 'entropy', 'lr'])
@@ -263,6 +274,7 @@ class Agent(MyAgent):
                 with open(os.path.join(self.path, 'scores_debug.csv'), 'a+') as f:
                     f.write(f'{iteration}, "{json.dumps(score_of_end_games)}"\n ')
 
+
                 mem_observations.extend(observations.flatten())
                 mem_masks.append(masks)
                 mem_actions.append(actions)
@@ -286,6 +298,14 @@ class Agent(MyAgent):
             mem_advantages = (mem_advantages - torch.mean(mem_advantages)) / (torch.std(mem_advantages) + 1e-5)
 
             s_policy, s_value, s_entropy = 0, 0, 0
+
+            if self.actions_dbg != -1:
+                writ = torch.zeros(self.actions_dbg + 1, dtype=torch.int64)
+                act = mem_actions.flatten().unique(return_counts=True)
+                writ[0] = iteration
+                writ[act[0] + 1] = act[1]
+                df = pd.DataFrame([writ.tolist()], columns=self.header_actions)
+                df.to_csv(self.path_actions, mode='a', header=False, index=False)
 
             # Learning here
             for epoch in range(count_of_epochs):
