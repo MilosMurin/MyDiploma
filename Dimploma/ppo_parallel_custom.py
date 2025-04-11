@@ -162,9 +162,9 @@ class Agent(MyAgent):
         self.train_desc = description
         write_to_file(description, f'{self.path}/desc.txt')
 
-    def test(self, env):
+    def test(self, env, argmax=True, reset_graph=True):
         terminal = False
-        observation, mask = env.reset()
+        observation, mask = env.reset(reset_graph)
         rewards = []
         actions_res = []
         masks_res = []
@@ -176,7 +176,10 @@ class Agent(MyAgent):
             # print(f'Logits shape after: {logits.shape}')
             probs = F.softmax(logits, dim=-1)
             # print(f'Probs shape: {probs.shape}')
-            actions = probs.argmax()
+            if argmax:
+                actions = probs.argmax()
+            else:
+                actions = probs.multinomial(num_samples=1)
 
             masks_res.append(mask)
             observation, mask, reward, terminal, _ = env.step(actions.item())

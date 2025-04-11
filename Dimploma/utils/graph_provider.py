@@ -10,15 +10,19 @@ class GraphProvider:
         self.nodes = nodes
         self.edges = edges
         self.position = position
+        self.fixed_graph = None
+        self.current_graph = None
 
         if fixed_graph is None and nodes < 0:
             raise ValueError("generate_graph_size must be greater than or equal to 0")
         else:
             self.set_fixed_graph(fixed_graph)
 
-    def get_graph(self):
+    def get_graph(self, new_graph=True):
         if self.generate:
-            return generate_random_graph_add_method(self.nodes, self.edges, device=self.device, position=self.position)
+            if self.current_graph is None or new_graph:
+                self.current_graph = generate_random_graph_add_method(self.nodes, self.edges, device=self.device, position=self.position)
+            return self.current_graph.clone()
         else:
             if self.fixed_graph is None:
                 raise ValueError("generate_graph_size must be greater than or equal to 0")

@@ -11,8 +11,8 @@ class EnvInfo:
         self.graph_provider = graph_provider
         self.matrix_env = matrix_env
 
-    def create_graph(self, device='cpu'):
-        return self.graph_provider.get_graph().to(device)
+    def create_graph(self, device='cpu', new_graph=True):
+        return self.graph_provider.get_graph(new_graph).to(device)
 
     def get_observation(self, graph: Data, matrix, steps, last_step=-1):
         cl = graph.clone().cpu()
@@ -65,9 +65,9 @@ class EnvMinimalTree:
         self.min_tree_score = self.min_tree.edge_weight.sum().item() / 2
         return self.min_tree_score
 
-    def reset(self):
+    def reset(self, new_graph=True):
         self.steps = 0
-        self.graph = self.env_info.create_graph()
+        self.graph = self.env_info.create_graph(self.device, new_graph=new_graph)
         self.matrix = data_to_matrix(self.graph)
         self.calculate_min_span_tree()
         self.parent = torch.arange(self.graph.x.shape[0], device=self.device)
@@ -128,9 +128,9 @@ class EnvMinimalTreeTwoStep(EnvMinimalTree):
         super().__init__(env_info, device, process_i, env_i)
         self.last_step = -1
 
-    def reset(self):
+    def reset(self, new_graph=True):
         self.last_step = -1
-        cl, _ = super().reset()
+        cl, _ = super().reset(new_graph)
         return cl, torch.ones(self.graph.x.shape[0], dtype=torch.bool)
 
     def step(self, action):

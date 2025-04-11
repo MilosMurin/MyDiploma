@@ -17,7 +17,7 @@ def plot_training(path):
 
 
 def get_out_edges(graph: Data):
-    data = torch.zeros(graph.x.shape[0])
+    data = torch.zeros(graph.x.shape[0], dtype= torch.int32)
     for i in range(graph.x.shape[0]):
         data[i] = torch.logical_or(graph.edge_index[0] == i, graph.edge_index[1] == i).sum()
     # sorted_data = torch.stack((data.sort().indices, data.sort().values))

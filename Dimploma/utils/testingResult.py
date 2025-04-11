@@ -1,10 +1,14 @@
+import os
+from abc import ABC, abstractmethod
 import numpy as np
+import torch
 from matplotlib import pyplot as plt
+import pandas as pd
 
+from Dimploma import util
 from Dimploma.utils.my_agent_base import MyAgent
 
-
-class TestResult:
+class TestBase(ABC):
     def __init__(self, node_amount, test_amount=100):
         self.test_amount = test_amount
         self.node_amount = node_amount
@@ -13,9 +17,6 @@ class TestResult:
         self.agents = []
         self.agent_multiple_tests = []
         self.agent_special = []
-        self.objs = np.zeros(test_amount, dtype=np.float32)
-        self.rews = np.zeros(test_amount, dtype=np.float32)
-        self.actions = np.zeros((test_amount, node_amount * 2), dtype=np.int16)
 
     def addAgent(self, name, agent: MyAgent, color='blue', multiple_tetst=False, special=False):
         self.agent_names.append(name)
@@ -24,26 +25,41 @@ class TestResult:
         self.agent_multiple_tests.append(multiple_tetst)
         self.agent_special.append(special)
 
+    @abstractmethod
+    def setup(self):
+        pass
+
+    @abstractmethod
+    def test(self, env, special = None):
+        pass
+
+class TestResult(TestBase):
+    def __init__(self, node_amount, test_amount=100):
+        super().__init__(node_amount, test_amount)
+        self.objs = np.zeros(test_amount, dtype=np.float32)
+        self.rews = np.zeros(test_amount, dtype=np.float32)
+        self.actions = np.zeros((test_amount, node_amount * 2), dtype=np.int16)
+
     def setup(self):
         ags = len(self.agents)
-        self.objs = np.zeros((ags, self.test_amount), dtype=np.float32)
-        self.rews = np.zeros((ags, self.test_amount), dtype=np.float32)
-        self.actions = np.zeros((ags, self.test_amount, self.node_amount * 2), dtype=np.int16)
+        self.objs = torch.zeros((ags, self.test_amount), dtype=torch.float32)
+        self.rews = torch.zeros((ags, self.test_amount), dtype=torch.float32)
+        self.actions = torch.zeros((ags, self.test_amount, self.node_amount * 2), dtype=torch.int16)
 
     def test(self, env, special=False):
         for j, agent in enumerate(self.agents):
             if self.agent_special[j] == special:
                 if self.agent_multiple_tests[j]:
                     for i in range(self.test_amount):
-                        obj, sel, rew, acts = agent.test(env)
+                        obj, sel, rew, acts = agent.test(env, argmax=False)
                         self.objs[j, i] = obj
                         self.rews[j, i] = rew[-1]
-                        self.actions[j, i, :len(acts)] = acts
+                        self.actions[j, i, :len(acts)] = torch.tensor(acts)
                 else:
                     obj, sel, rew, acts = agent.test(env)
                     self.objs[j, :] = obj
                     self.rews[j, :] = rew[-1]
-                    self.actions[j, :, :len(acts)] = acts
+                    self.actions[j, :, :len(acts)] = torch.tensor(acts)
 
 
     def print_result(self, rews=False):
@@ -70,3 +86,63 @@ class TestResult:
             print(f'Priemer, Min, Max: {mean_r:.2f}')
         else:
             print(f'Priemer: {mean_r:.2f}, Min: {min_r:.2f}, Max: {max_r:.2f}')
+
+
+class TestCorrelResult(TestBase):
+    def __init__(self, node_amount, test_amount=100, graph_amount=100, name='test', append=-1):
+        super().__init__(node_amount, test_amount)
+        self.graph_amount = graph_amount
+        self.append = append
+        self.header = ['graph'] + list(range(node_amount))
+        self.name = name + f'_t{self.test_amount}'
+        self.path = os.path.join('results/correl/', f'{self.name}/')
+        self.deg_path = os.path.join(self.path, 'degrees.csv')
+        self.agent_paths = []
+
+    def addAgent(self, name, agent: MyAgent, color='blue', multiple_tetst=False, special=False):
+        super().addAgent(name, agent, color, multiple_tetst, special)
+        self.agent_paths.append(os.path.join('results/', f'{self.name}/{name.replace(" ", "_").lower()}_actions.csv'))
+
+    def setup(self, name='test'):
+        self.name = name + f'_n{self.node_amount}_t{self.test_amount}'
+        self.path = os.path.join('results/correl/', f'{self.name}/')
+        self.deg_path = os.path.join(self.path, 'degrees.csv')
+        os.makedirs(self.path, exist_ok=True)
+        self.agent_paths = []
+        if self.append == -1:
+            pd.DataFrame(columns=self.header).to_csv(self.deg_path, index=False)
+        for i, agent_name in enumerate(self.agent_names):
+            self.agent_paths.append(os.path.join(self.path, f'{agent_name.replace(" ", "_").lower()}_actions.csv'))
+            if self.append == -1:
+                pd.DataFrame(columns=self.header).to_csv(self.agent_paths[i], index=False)
+                pd.DataFrame(columns=self.header).to_csv(self.agent_paths[i], index=False)
+
+    def test(self, env, special=None):
+        print(f'Started tests')
+        for g in range(self.graph_amount):
+            gi = g + (self.append if self.append > 0 else 0)
+            print(f'Graph {gi}------------------------------')
+            for j, agent in enumerate(self.agents):
+                print(f'Started tests for agent {self.agent_names[j]}')
+                actions = torch.zeros(self.test_amount, self.node_amount * 2, dtype=torch.int32)
+                for i in range(self.test_amount):
+                    if self.agent_special[j]:
+                        obj, sel, rew, acts = agent.test(special, argmax=False, reset_graph=False)
+                    else:
+                        obj, sel, rew, acts = agent.test(env, argmax=False, reset_graph=False)
+                    actions[i, :len(acts)] = torch.tensor(acts)
+                    if i != 0 and i % 10 == 0:
+                        print(f'finished {i} tests for agent {self.agent_names[j]}')
+                print(f'Finished all tests for agent {self.agent_names[j]}')
+                counts = actions.unique(return_counts=True)
+                writ = torch.zeros(self.node_amount + 1, dtype=torch.int64)
+                writ[0] = gi
+                writ[counts[0] + 1] = counts[1]
+                df = pd.DataFrame([writ.tolist()], columns=self.header)
+                df.to_csv(self.agent_paths[j], mode='a', header=False, index=False)
+            print(f'Finished {gi + 1} tests for all agents')
+            gr, _ = env.reset(True)
+            writ = torch.cat([torch.tensor([gi]), util.get_out_edges(gr)])
+            df = pd.DataFrame([writ.tolist()], columns=self.header)
+            df.to_csv(self.deg_path, mode='a', header=False, index=False)
+        print(f'Ended tests')
