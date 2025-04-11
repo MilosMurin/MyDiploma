@@ -117,7 +117,7 @@ class TestCorrelResult(TestBase):
                 pd.DataFrame(columns=self.header).to_csv(self.agent_paths[i], index=False)
                 pd.DataFrame(columns=self.header).to_csv(self.agent_paths[i], index=False)
 
-    def test(self, env, special=None):
+    def test(self, env, special=None, argmax=False):
         print(f'Started tests')
         for g in range(self.graph_amount):
             gi = g + (self.append if self.append > 0 else 0)
@@ -127,9 +127,9 @@ class TestCorrelResult(TestBase):
                 actions = torch.zeros(self.test_amount, self.node_amount * 2, dtype=torch.int32)
                 for i in range(self.test_amount):
                     if self.agent_special[j]:
-                        obj, sel, rew, acts = agent.test(special, argmax=False, reset_graph=False)
+                        obj, sel, rew, acts = agent.test(special, argmax=argmax, reset_graph=False)
                     else:
-                        obj, sel, rew, acts = agent.test(env, argmax=False, reset_graph=False)
+                        obj, sel, rew, acts = agent.test(env, argmax=argmax, reset_graph=False)
                     actions[i, :len(acts)] = torch.tensor(acts)
                     if i != 0 and i % 10 == 0:
                         print(f'finished {i} tests for agent {self.agent_names[j]}')
