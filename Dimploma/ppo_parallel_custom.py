@@ -120,7 +120,7 @@ class Agent(MyAgent):
     def __init__(self, model, gamma=0.99, epsilon=0.1,
                  coef_value=0.5, coef_entropy=0.001, gae_lambda=0.95,
                  name='ppo', path='results/', device='cpu', lr=0.00025,
-                 override=False, test=False, early_stop=False, actions_dbg=-1):
+                 override=False, test=False, early_stop=False, actions_dbg=-1, node_amount=10):
 
         self.model = model
         self.model.to(device)
@@ -141,7 +141,7 @@ class Agent(MyAgent):
 
         self.actions_dbg = actions_dbg
         if self.actions_dbg != -1:
-            self.header_actions = ['iter'] + list(range(10))
+            self.header_actions = ['iter'] + list(range(node_amount))
             self.path_actions = os.path.join(self.path, 'actions_debug.csv')
 
         if not test:

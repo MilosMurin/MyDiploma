@@ -108,6 +108,7 @@ class TestCorrelResult(TestBase):
         self.path = os.path.join('results/correl/', f'{self.name}/')
         self.deg_path = os.path.join(self.path, 'degrees.csv')
         os.makedirs(self.path, exist_ok=True)
+        os.makedirs(f'{self.path}/graphs/', exist_ok=True)
         self.agent_paths = []
         if self.append == -1:
             pd.DataFrame(columns=self.header).to_csv(self.deg_path, index=False)
@@ -121,6 +122,11 @@ class TestCorrelResult(TestBase):
         print(f'Started tests')
         for g in range(self.graph_amount):
             gi = g + (self.append if self.append > 0 else 0)
+            gr, _ = env.reset(True)
+            writ = torch.cat([torch.tensor([gi]), util.get_out_edges(gr)])
+            df = pd.DataFrame([writ.tolist()], columns=self.header)
+            df.to_csv(self.deg_path, mode='a', header=False, index=False)
+            torch.save(gr, f'{self.path}graphs/graph{gi}')
             print(f'Graph {gi}------------------------------')
             for j, agent in enumerate(self.agents):
                 print(f'Started tests for agent {self.agent_names[j]}')
@@ -141,8 +147,4 @@ class TestCorrelResult(TestBase):
                 df = pd.DataFrame([writ.tolist()], columns=self.header)
                 df.to_csv(self.agent_paths[j], mode='a', header=False, index=False)
             print(f'Finished {gi + 1} tests for all agents')
-            gr, _ = env.reset(True)
-            writ = torch.cat([torch.tensor([gi]), util.get_out_edges(gr)])
-            df = pd.DataFrame([writ.tolist()], columns=self.header)
-            df.to_csv(self.deg_path, mode='a', header=False, index=False)
         print(f'Ended tests')
