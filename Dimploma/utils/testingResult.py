@@ -8,6 +8,8 @@ import pandas as pd
 from Dimploma import util
 from Dimploma.utils.my_agent_base import MyAgent
 
+from scipy.stats import pearsonr
+
 class TestBase(ABC):
     def __init__(self, node_amount, test_amount=100):
         self.test_amount = test_amount
@@ -93,7 +95,8 @@ class TestCorrelResult(TestBase):
         super().__init__(node_amount, test_amount)
         self.graph_amount = graph_amount
         self.append = append
-        self.header = ['graph'] + list(range(node_amount))
+        # self.header = ['graph'] + list(range(node_amount))
+        self.header = ['graph', 'correlation']
         self.name = name + f'_t{self.test_amount}'
         self.path = os.path.join('results/correl/', f'{self.name}/')
         self.deg_path = os.path.join(self.path, 'degrees.csv')
@@ -123,27 +126,24 @@ class TestCorrelResult(TestBase):
         for g in range(self.graph_amount):
             gi = g + (self.append if self.append > 0 else 0)
             gr, _ = env.reset(True)
-            writ = torch.cat([torch.tensor([gi]), util.get_out_edges(gr)])
-            df = pd.DataFrame([writ.tolist()], columns=self.header)
-            df.to_csv(self.deg_path, mode='a', header=False, index=False)
+            degrees = util.get_out_edges(gr)
+            # writ = torch.cat([torch.tensor([gi]), degrees])
+            # df = pd.DataFrame([writ.tolist()], columns=self.header)
+            # df.to_csv(self.deg_path, mode='a', header=False, index=False)
             torch.save(gr, f'{self.path}graphs/graph{gi}')
             print(f'Graph {gi}------------------------------')
             for j, agent in enumerate(self.agents):
                 print(f'Started tests for agent {self.agent_names[j]}')
-                actions = torch.zeros(self.test_amount, self.node_amount * 2, dtype=torch.int32)
-                for i in range(self.test_amount):
-                    if self.agent_special[j]:
-                        obj, sel, rew, acts = agent.test(special, argmax=argmax, reset_graph=False)
-                    else:
-                        obj, sel, rew, acts = agent.test(env, argmax=argmax, reset_graph=False)
-                    actions[i, :len(acts)] = torch.tensor(acts)
-                    if i != 0 and i % 10 == 0:
-                        print(f'finished {i} tests for agent {self.agent_names[j]}')
-                print(f'Finished all tests for agent {self.agent_names[j]}')
-                counts = actions.unique(return_counts=True)
-                writ = torch.zeros(self.node_amount + 1, dtype=torch.int64)
+                # actions = torch.zeros(self.test_amount, self.node_amount, dtype=torch.int32)
+                writ = torch.zeros(2, dtype=torch.float32)
                 writ[0] = gi
-                writ[counts[0] + 1] = counts[1]
+                if self.agent_special[j]:
+                    logits = agent.test_correl(special, reset_graph=False)
+                else:
+                    logits = agent.test_correl(env, reset_graph=False)
+                corr = pearsonr(degrees, logits.squeeze())
+                writ[1] = corr[0]
+                # print(f'Finished all tests for agent {self.agent_names[j]}')
                 df = pd.DataFrame([writ.tolist()], columns=self.header)
                 df.to_csv(self.agent_paths[j], mode='a', header=False, index=False)
             print(f'Finished {gi + 1} tests for all agents')

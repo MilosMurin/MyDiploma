@@ -162,6 +162,16 @@ class Agent(MyAgent):
         self.train_desc = description
         write_to_file(description, f'{self.path}/desc.txt')
 
+    def test_correl(self, env, reset_graph=True):
+        observation, mask = env.reset(reset_graph)
+        with torch.no_grad():
+            logits, values = self.model(observation.to(self.device))
+
+        logits = torch.where(mask.cpu(), logits.cpu(), torch.tensor(-1e+8).cpu())
+
+        return logits
+
+
     def test(self, env, argmax=True, reset_graph=True):
         terminal = False
         observation, mask = env.reset(reset_graph)
