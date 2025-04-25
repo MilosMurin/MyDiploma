@@ -12,11 +12,12 @@ def _init_weights(module):
 
 
 class GCN31(torch.nn.Module):
-    def __init__(self, out_size, num_node_features):
+    def __init__(self, out_size, num_node_features, rem_index=False):
         super().__init__()
 
         self.out_size = out_size
         self.num_node_features = num_node_features
+        self.rem_index = rem_index
 
         self.conv1 = nng.GATConv(num_node_features, 16)
         self.conv2 = nng.GATConv(16 + num_node_features, 16)
@@ -32,6 +33,8 @@ class GCN31(torch.nn.Module):
     def forward(self, data):
         x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr[:,
                                                               :2]  # take only the normalized distances with edge_attr[:, 0]
+        if self.rem_index:
+            x = x[:, 1:]
 
         xa = F.relu(self.conv1(x, edge_index, edge_weight))
         xa = F.relu(self.conv2(torch.cat((xa, x), dim=1), edge_index, edge_weight))

@@ -27,7 +27,7 @@ class GraphProvider:
             return self.current_graph.clone()
         else:
             if self.fixed_graph is None:
-                raise ValueError("generate_graph_size must be greater than or equal to 0")
+                raise ValueError("Not supposed to generate graph and have no fixed graph set")
             else:
                 return self.fixed_graph.clone()
 

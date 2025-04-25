@@ -16,12 +16,13 @@ def plot_training(path):
     plt.show()
 
 
-def get_out_edges(graph: Data):
+def get_out_edges(graph: Data, to_sort=False):
     data = torch.zeros(graph.x.shape[0], dtype= torch.int32)
     for i in range(graph.x.shape[0]):
         data[i] = torch.logical_or(graph.edge_index[0] == i, graph.edge_index[1] == i).sum()
-    # sorted_data = torch.stack((data.sort().indices, data.sort().values))
-    # return sorted_data
+    if to_sort:
+        sorted_data = torch.stack((data.sort().indices, data.sort().values))
+        return sorted_data
     return data
 
 def get_node_sums_norm(graph: Data):
@@ -34,13 +35,14 @@ def get_node_sums_norm(graph: Data):
     sorted_data = torch.stack((sums.sort().indices, sums.sort().values))
     return sorted_data
 
-def get_node_sums(graph: Data):
+def get_node_sums(graph: Data, to_sort=False):
     data = torch.zeros(graph.x.shape[0])
     for i in range(graph.x.shape[0]):
         data[i] = graph.edge_attr[
-            torch.logical_or(graph.edge_index[0] == i, graph.edge_index[1] == i), 0].sum()
-    # sorted_data = torch.stack((data.sort().indices, data.sort().values))
-    # return sorted_data
+            torch.logical_or(graph.edge_index[0] == i, graph.edge_index[1] == i), 2].sum()
+    if to_sort:
+        sorted_data = torch.stack((data.sort().indices, data.sort().values))
+        return sorted_data
     return data
 
 def show_data(da):
