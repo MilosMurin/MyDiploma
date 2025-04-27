@@ -50,12 +50,15 @@ def show_data(da):
     show_graph(gr)
 
 
-def show_graph(gr):
+def show_graph(gr, widths=None, with_labels=True):
     gr_pos = nx.spring_layout(gr)
     nx.draw_networkx(gr, gr_pos, with_labels=True)
 
     gr_labels = nx.get_edge_attributes(gr, 'edge_weight')
-    nx.draw_networkx_edge_labels(gr, gr_pos, edge_labels=gr_labels)
+    if widths is not None:
+        nx.draw_networkx_edges(gr, gr_pos, width=widths)
+    if with_labels:
+        nx.draw_networkx_edge_labels(gr, gr_pos, edge_labels=gr_labels)
 
     plt.show()
 
