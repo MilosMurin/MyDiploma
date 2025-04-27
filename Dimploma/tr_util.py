@@ -6,10 +6,13 @@ from Dimploma.EnvironmentTree import EnvMinimalTreeTwoStep, EnvMaximalTreeTwoSte
 from Dimploma.ppo_parallel_custom import Agent
 
 
-def load_agent_for_testing(path, iteration_amount, env_info: EnvInfo, gcn, device='cpu', maximal=False):
+def load_agent_for_testing(path, iteration_amount, env_info: EnvInfo, gcn, device='cpu', maximal=False, pth=None):
     testesing_agent = path
     testing_iter_amount = iteration_amount
-    testing_last_path = f'/models/iter_{testing_iter_amount - 1}_last.pt'
+    if pth is None:
+        testing_last_path = f'/models/iter_{testing_iter_amount - 1}_last.pt'
+    else:
+        testing_last_path = pth
     util.plot_training(testesing_agent)
     loaded_graph = torch.load(testesing_agent + '/graph.pt', map_location=device, weights_only=False)
     if loaded_graph is not None:

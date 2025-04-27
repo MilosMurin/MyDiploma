@@ -10,10 +10,10 @@ from torch.optim.lr_scheduler import LinearLR
 from torch.multiprocessing import Process, Pipe
 from torch_geometric.data import Batch, Data
 
+from Dimploma import util
 from Dimploma.utils.my_agent_base import MyAgent
 from utils.logger import AgentLogger, ScoreLogger
 from utils.utils import flatten_list, write_to_file
-
 
 # import ipdb
 
@@ -162,14 +162,29 @@ class Agent(MyAgent):
         self.train_desc = description
         write_to_file(description, f'{self.path}/desc.txt')
 
-    def test_correl(self, env, reset_graph=True):
-        observation, mask = env.reset(reset_graph)
-        with torch.no_grad():
-            logits, values = self.model(observation.to(self.device))
+    def test_correl(self, env, deg, reset_graph=True):
 
-        logits = torch.where(mask.cpu(), logits.cpu(), torch.tensor(-1e+8).cpu())
+        corrs = []
+        obs, mask = env.reset(reset_graph)
+        terminal = False
 
-        return logits
+        while not terminal:
+            with torch.no_grad():
+                logits, values = self.model(obs.to(self.device))
+
+            logits = torch.where(mask.cpu(), logits.cpu(), torch.tensor(-1e+8).cpu())
+
+            corrs.append(np.corrcoef(deg, logits.squeeze())[0, 1])
+
+            # print(f'Logits shape after: {logits.shape}')
+            probs = F.softmax(logits, dim=-1)
+            # print(f'Probs shape: {probs.shape}')
+            actions = probs.multinomial(num_samples=1)
+
+            observation, mask, reward, terminal, _ = env.step(actions.item())
+
+
+        return abs(np.array(corrs)).mean()
 
 
     def test(self, env, argmax=True, reset_graph=True):

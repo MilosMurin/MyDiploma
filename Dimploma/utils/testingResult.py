@@ -138,11 +138,11 @@ class TestCorrelResult(TestBase):
                 writ = torch.zeros(2, dtype=torch.float32)
                 writ[0] = gi
                 if self.agent_special[j]:
-                    logits = agent.test_correl(special, reset_graph=False)
+                    corr = agent.test_correl(special, degrees, reset_graph=False)
                 else:
-                    logits = agent.test_correl(env, reset_graph=False)
-                corr = pearsonr(degrees, logits.squeeze())
-                writ[1] = corr[0]
+                    corr = agent.test_correl(env, degrees, reset_graph=False)
+
+                writ[1] = corr
                 # print(f'Finished all tests for agent {self.agent_names[j]}')
                 df = pd.DataFrame([writ.tolist()], columns=self.header)
                 df.to_csv(self.agent_paths[j], mode='a', header=False, index=False)
